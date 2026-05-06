@@ -90,13 +90,13 @@ For a new model, return the complete model as React Flow-shaped nodes plus edges
 }
 ```
 
-Use stable ids such as `node-1` and `edge-1`. Node ids must be unique across `nodes`; node `data.name` values must be non-empty and unique across `nodes`; edge ids must be unique across `edges`. Every edge endpoint must reference a node id in the same model unless the caller provided an existing model with those ids.
+Use stable AI-generated ids with explicit prefixes: node ids must start with `node-`, such as `node-1`, and edge ids must start with `edge-`, such as `edge-1`. These prefixes distinguish newly generated model elements from persisted production records. Node ids must be unique across `nodes`; node `data.name` values must be non-empty and unique across `nodes`; edge ids must be unique across `edges`. Every edge endpoint must reference a node id in the same model unless the caller provided an existing model with those ids.
 
 Recommended node fields:
 
-- `id`: stable identifier.
+- `id`: stable identifier. For newly generated nodes, always use a `node-` prefix.
 - `type`: render type, such as `fmContext`, `fmEvidence`, `fmParticipant`, or `fmRole`; use `group` for generic context containers when no custom renderer exists.
-- `position`: React Flow-compatible position. Use `{ "x": 0, "y": 0 }` when layout will be computed later.
+- `position`: always return `{ "x": 0, "y": 0 }` for generated nodes. Do not compute layout positions; the frontend owns all layout calculation.
 - `parentId`: parent Context node id for child nodes inside a context. Context nodes must appear before their children.
 - `extent`: use `"parent"` when child movement should stay inside the context container.
 - `data.label`: human-readable business label.
@@ -108,7 +108,7 @@ Recommended node fields:
 
 Recommended edge fields:
 
-- `id`: stable identifier.
+- `id`: stable identifier. For newly generated edges, always use an `edge-` prefix.
 - `source`: source node id.
 - `target`: target node id.
 - `type`: React Flow edge type such as `smoothstep`, `step`, `straight`, or `default`.
