@@ -5,7 +5,7 @@ Use these rules when a task needs precise Fulfillment Modeling generation or val
 ## FM Process
 
 1. Contract context first: identify Contract and its key Party Roles before other entities. Participant Party is optional supporting information, not the main modeling entry.
-2. Party role modeling: extract Party Roles for each business subject and connect them to Contract. Add Participant Party only when explicit party identity matters; connect Participant Party -> Party Role -> Contract.
+2. Party role modeling: extract Party Roles for each business subject and connect them to Contract. A Party Role expresses identity-in-context, responsibility, and participation; it does not replace concrete business actions. Add Participant Party only when explicit party identity matters; connect Participant Party -> Party Role -> Contract.
 3. Presales evidence: add RFP and Proposal only when the requirement contains a presales stage.
 4. Main fulfillment items: model contract responsibilities as Fulfillment Request -> Fulfillment Confirmation pairs.
 5. Exceptions and breach flows: refund, cancellation, service suspension, reversal, and similar flows also use Request -> Confirmation pairs.
@@ -48,10 +48,26 @@ For a new model, return the complete model as React Flow-shaped nodes plus edges
       "position": { "x": 0, "y": 0 },
       "parentId": "node-context-1",
       "data": {
-        "label": "销售合同 signed_at",
+        "label": "销售合同",
         "name": "SalesContract",
         "category": "Evidence",
         "kind": "Contract",
+        "attributes": [
+          {
+            "name": "signedAt",
+            "label": "签署时间",
+            "valueType": "DateTime",
+            "required": true,
+            "meaning": "合同签署完成的业务时间"
+          },
+          {
+            "name": "contractAmount",
+            "label": "合同金额",
+            "valueType": "Money",
+            "required": true,
+            "meaning": "双方约定的履约金额"
+          }
+        ],
         "notes": "可选说明"
       }
     }
@@ -87,6 +103,7 @@ Recommended node fields:
 - `data.name`: concise technical or English identifier.
 - `data.category`: `Evidence`, `Participant`, `Role`, or `Context`.
 - `data.kind`: concrete FM kind such as `Contract`, `Party Role`, `Fulfillment Request`, `Fulfillment Confirmation`, `Evidence As Role`, or `Other Evidence`.
+- `data.attributes`: optional array for intrinsic business attributes of the node, including lifecycle time semantics when relevant. Each item should include `name`, `label`, `valueType`, `required`, and `meaning` when known.
 - `data.notes`: optional short explanation.
 
 Recommended edge fields:
@@ -124,8 +141,12 @@ Use `_meta` for non-rendered diagnostics. Put validation notes, assumptions, and
 
 ## Naming
 
-- Include evidence category and key time semantics where helpful: `started_at`, `expired_at`, `confirmed_at`, `signed_at`, `created_at`.
-- Other Evidence and Evidence As Role should usually carry `created_at`.
+- Keep `data.label` as a human-readable business label. Do not append lifecycle timestamp suffixes such as `started_at`, `expired_at`, `confirmed_at`, `signed_at`, or `created_at` to node labels.
+- Return key time semantics as items in `data.attributes` when helpful.
+- Return entity attributes in `data.attributes`; do not encode them in `data.label`.
+- Keep `data.attributes` for state or facts owned by that node.
+- Model concrete business actions, decisions, calculations, and lifecycle transitions with Fulfillment Request/Fulfillment Confirmation nodes and flow edges.
+- Other Evidence and Evidence As Role should usually include a `createdAt` DateTime item in `data.attributes`.
 - Domain Logic and Third Party roles must use human job/position names, not technical component names such as rule engine, SDK, queue, risk service, or payment gateway.
 
 ## Edge Rules
@@ -150,6 +171,7 @@ Participants:
 Roles:
 
 - RFP, Proposal, Fulfillment Request, Fulfillment Confirmation, and Other Evidence each connect to exactly one Party Role.
+- Party Role names should describe the business capacity or responsibility, such as Customer, Supplier, Payer, or Service Provider. Model concrete actions, decisions, calculations, and lifecycle transitions with Fulfillment Request/Fulfillment Confirmation nodes and flow edges, not on the Party Role itself.
 - Domain Logic Role connects to RFP, Proposal, or Request as a business calculator.
 - Third Party Role and Context Role only connect to Other Evidence or Evidence As Role.
 - Evidence As Role is only for cross-context bridges and only in the chain Fulfillment Confirmation -> Evidence As Role -> Fulfillment Confirmation.
