@@ -37,6 +37,10 @@ FORBIDDEN_EVIDENCE_AS_ROLE_NEIGHBORS = {
     ("Evidence", "Proposal"),
     ("Evidence", "Fulfillment Request"),
 }
+BUILT_IN_EDGE_TYPES = {"default", "straight", "step", "smoothstep", "simplebezier"}
+ROLE_PLAY_DASH = "6 4"
+CROSS_CONTEXT_DASH = "3 3"
+ARROW_CLOSED = "arrowclosed"
 
 
 def main() -> int:
@@ -188,8 +192,10 @@ def collect_nodes(nodes_value: list[Any], errors: list[str]) -> dict[str, dict[s
     return nodes
 
 
-def collect_edges(edges_value: list[Any], errors: list[str]) -> list[tuple[str, str, str, int]]:
-    edges: list[tuple[str, str, str, int]] = []
+def collect_edges(
+    edges_value: list[Any], errors: list[str]
+) -> list[tuple[str, str, str, int, dict[str, Any]]]:
+    edges: list[tuple[str, str, str, int, dict[str, Any]]] = []
     edge_ids: set[str] = set()
     for index, edge in enumerate(edges_value):
         if not isinstance(edge, dict):
@@ -208,7 +214,7 @@ def collect_edges(edges_value: list[Any], errors: list[str]) -> list[tuple[str, 
         if source is None or target is None:
             errors.append(f"edges[{index}] must provide source and target.")
             continue
-        edges.append((edge_id, source, target, index))
+        edges.append((edge_id, source, target, index, edge))
     return edges
 
 
@@ -313,13 +319,14 @@ def validate_lifecycle_attributes(node_id: str, node: dict[str, Any]) -> list[st
 
 
 def validate_edges(
-    nodes: dict[str, dict[str, Any]], edges: list[tuple[str, str, str, int]]
+    nodes: dict[str, dict[str, Any]], edges: list[tuple[str, str, str, int, dict[str, Any]]]
 ) -> list[str]:
     errors: list[str] = []
     adjacency: dict[str, list[str]] = defaultdict(list)
     directed_edges: list[tuple[str, str, int]] = []
+    visual_edges: list[tuple[str, str, int, dict[str, Any]]] = []
 
-    for edge_id, source, target, index in edges:
+    for edge_id, source, target, index, edge in edges:
         if source not in nodes or target not in nodes:
             errors.append(
                 f"edges[{index}] '{edge_id}' references undefined node(s): {source} -> {target}."
@@ -328,10 +335,69 @@ def validate_edges(
         adjacency[source].append(target)
         adjacency[target].append(source)
         directed_edges.append((source, target, index))
+        visual_edges.append((source, target, index, edge))
 
     errors.extend(validate_party_role_participation(nodes, adjacency))
     errors.extend(validate_request_confirmation_chain(nodes, directed_edges))
     errors.extend(validate_role_edge_constraints(nodes, directed_edges, adjacency))
+    errors.extend(validate_edge_visual_rules(nodes, visual_edges))
+    return errors
+
+
+def validate_edge_visual_rules(
+    nodes: dict[str, dict[str, Any]], edges: list[tuple[str, str, int, dict[str, Any]]]
+) -> list[str]:
+    errors: list[str] = []
+    for source, target, index, edge in edges:
+        edge_type = normalize(edge.get("type"))
+        if edge_type is None:
+            errors.append(f"edges[{index}] must provide React Flow edge type.")
+        elif edge_type not in BUILT_IN_EDGE_TYPES:
+            errors.append(
+                f"edges[{index}] type must be one of {sorted(BUILT_IN_EDGE_TYPES)}; found '{edge_type}'."
+            )
+
+        source_kind = node_kind(nodes.get(source))
+        target_kind = node_kind(nodes.get(target))
+        if is_role_play_edge(source_kind, target_kind):
+            errors.extend(validate_role_play_visual(edge, index))
+        elif is_cross_context_association_edge(source_kind, target_kind):
+            errors.extend(validate_cross_context_visual(edge, index))
+        else:
+            errors.extend(validate_default_edge_visual(edge, index))
+    return errors
+
+
+def validate_role_play_visual(edge: dict[str, Any], index: int) -> list[str]:
+    errors: list[str] = []
+    if edge_dash(edge) != ROLE_PLAY_DASH:
+        errors.append(
+            f"edges[{index}] role-play edge must use style.strokeDasharray '{ROLE_PLAY_DASH}'."
+        )
+    if marker_end_type(edge) != ARROW_CLOSED:
+        errors.append(
+            f"edges[{index}] role-play edge must use markerEnd.type '{ARROW_CLOSED}'."
+        )
+    return errors
+
+
+def validate_cross_context_visual(edge: dict[str, Any], index: int) -> list[str]:
+    errors: list[str] = []
+    if edge_dash(edge) != CROSS_CONTEXT_DASH:
+        errors.append(
+            f"edges[{index}] cross-context association edge must use style.strokeDasharray '{CROSS_CONTEXT_DASH}'."
+        )
+    if marker_end_type(edge) is not None:
+        errors.append(f"edges[{index}] cross-context association edge must not use markerEnd.")
+    return errors
+
+
+def validate_default_edge_visual(edge: dict[str, Any], index: int) -> list[str]:
+    errors: list[str] = []
+    if edge_dash(edge) is not None:
+        errors.append(f"edges[{index}] default edge must be solid and omit style.strokeDasharray.")
+    if marker_end_type(edge) is not None:
+        errors.append(f"edges[{index}] default edge must not use markerEnd.")
     return errors
 
 
@@ -450,6 +516,32 @@ def is_allowed_cross_context_edge(
         source_kind == ("Role", "Evidence As Role")
         and target_kind == ("Evidence", "Fulfillment Confirmation")
     )
+
+
+def is_role_play_edge(
+    source_kind: tuple[str | None, str | None], target_kind: tuple[str | None, str | None]
+) -> bool:
+    return source_kind[0] == "Participant" and target_kind[0] == "Role"
+
+
+def is_cross_context_association_edge(
+    source_kind: tuple[str | None, str | None], target_kind: tuple[str | None, str | None]
+) -> bool:
+    return is_allowed_cross_context_edge(source_kind, target_kind)
+
+
+def edge_dash(edge: dict[str, Any]) -> str | None:
+    style = edge.get("style")
+    if not isinstance(style, dict):
+        return None
+    return normalize(style.get("strokeDasharray"))
+
+
+def marker_end_type(edge: dict[str, Any]) -> str | None:
+    marker_end = edge.get("markerEnd")
+    if isinstance(marker_end, dict):
+        return normalize(marker_end.get("type"))
+    return normalize(marker_end)
 
 
 def context_id(nodes: dict[str, dict[str, Any]], node_id: str) -> str | None:

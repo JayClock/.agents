@@ -112,9 +112,19 @@ Recommended edge fields:
 - `id`: stable identifier. For newly generated edges, always use an `edge-` prefix.
 - `source`: source node id.
 - `target`: target node id.
-- `type`: React Flow edge type such as `smoothstep`, `step`, `straight`, or `default`.
+- `type`: React Flow edge path type such as `smoothstep`, `step`, `straight`, or `default`. Prefer `smoothstep` for generated FM graphs unless the caller provides a renderer-specific convention.
 - `label`: short business phrase explaining the relationship.
 - `sourceHandle` / `targetHandle`: optional handle ids when a custom node exposes multiple ports.
+- `markerEnd`: optional React Flow marker config, for example `{ "type": "arrowclosed" }`.
+- `style`: optional React Flow CSS style object, for example `{ "strokeDasharray": "6 4" }`.
+
+React Flow separates edge path shape from visual styling. Its built-in edge `type` values control routing/shape; arrows and dashed lines are expressed with `markerEnd` and `style`, or with a registered custom edge when the frontend needs richer behavior. Use these FM visual classes:
+
+- Default flow edge: use a solid line for normal evidence flow, participation, request/confirmation, thing-to-evidence, and same-context business relationships. Set `type: "smoothstep"` and omit `style.strokeDasharray` unless the caller asks for a different visual theme.
+- Role-play edge: use a dashed arrow when a Participant Party or Thing plays a Role, such as Participant Party -> Party Role or Thing -> Domain Role. Set `type: "smoothstep"`, `markerEnd: { "type": "arrowclosed" }`, and `style: { "strokeDasharray": "6 4" }`.
+- Cross-context association edge: use a dashed line for allowed cross-context bridges, specifically Fulfillment Confirmation -> Evidence As Role and Evidence As Role -> Fulfillment Confirmation. Set `type: "smoothstep"` and `style: { "strokeDasharray": "3 3" }`. Do not use this visual class to bypass the cross-context semantic rule.
+
+Do not use custom edge `type` values such as `role-play` or `cross-context-association` unless the target React Flow app has registered matching `edgeTypes`. When portability matters, keep the built-in path `type` and express visual differences with `markerEnd` and `style`.
 
 For an update to a large existing model, return only changes when full output would be wasteful:
 
@@ -605,6 +615,8 @@ Complete example for a medium-sized model:
       "source": "node-1",
       "target": "node-4",
       "type": "smoothstep",
+      "markerEnd": { "type": "arrowclosed" },
+      "style": { "strokeDasharray": "6 4" },
       "label": "用户扮演订阅用户"
     },
     {
@@ -612,6 +624,8 @@ Complete example for a medium-sized model:
       "source": "node-2",
       "target": "node-5",
       "type": "smoothstep",
+      "markerEnd": { "type": "arrowclosed" },
+      "style": { "strokeDasharray": "6 4" },
       "label": "平台扮演服务提供方"
     },
     {
@@ -619,6 +633,8 @@ Complete example for a medium-sized model:
       "source": "node-1",
       "target": "node-11",
       "type": "smoothstep",
+      "markerEnd": { "type": "arrowclosed" },
+      "style": { "strokeDasharray": "6 4" },
       "label": "用户扮演付款方"
     },
     {
@@ -626,6 +642,8 @@ Complete example for a medium-sized model:
       "source": "node-2",
       "target": "node-12",
       "type": "smoothstep",
+      "markerEnd": { "type": "arrowclosed" },
+      "style": { "strokeDasharray": "6 4" },
       "label": "平台扮演收款方"
     },
     {
@@ -752,6 +770,7 @@ Complete example for a medium-sized model:
       "source": "node-15",
       "target": "node-16",
       "type": "smoothstep",
+      "style": { "strokeDasharray": "3 3" },
       "label": "支付成功产生跨上下文凭证"
     },
     {
@@ -759,6 +778,7 @@ Complete example for a medium-sized model:
       "source": "node-16",
       "target": "node-8",
       "type": "smoothstep",
+      "style": { "strokeDasharray": "3 3" },
       "label": "支付成功支撑权限开通确认"
     },
     {
@@ -766,6 +786,7 @@ Complete example for a medium-sized model:
       "source": "node-10",
       "target": "node-17",
       "type": "smoothstep",
+      "style": { "strokeDasharray": "3 3" },
       "label": "退款确认产生跨上下文凭证"
     },
     {
@@ -773,6 +794,7 @@ Complete example for a medium-sized model:
       "source": "node-17",
       "target": "node-18",
       "type": "smoothstep",
+      "style": { "strokeDasharray": "3 3" },
       "label": "退款确认支撑退款出款确认"
     },
     {
@@ -858,6 +880,10 @@ The script checks:
 - Every node `type` equals its `data.category`.
 - Evidence lifecycle attributes are present with `valueType: "DateTime"` and `required: true`: RFP/Proposal/Fulfillment Request require `startedAt` and `expiredAt`; Contract requires `signedAt`; Fulfillment Confirmation requires `confirmedAt`; Other Evidence requires `createdAt`.
 - Every mandatory edge has known endpoints.
+- Every edge uses a supported built-in React Flow `type`.
+- Role-play edges use dashed arrows with `markerEnd.type: "arrowclosed"` and `style.strokeDasharray: "6 4"`.
+- Cross-context association edges use dashed lines with `style.strokeDasharray: "3 3"` and no arrow marker.
+- Default edges stay solid and omit `style.strokeDasharray`.
 - Every RFP/Proposal/Request/Confirmation/Other Evidence has exactly one Party Role neighbor.
 - Every Fulfillment Request has one direct Contract predecessor and one Fulfillment Confirmation successor.
 - Cross-context edges are limited to Fulfillment Confirmation -> Evidence As Role and Evidence As Role -> Fulfillment Confirmation.
