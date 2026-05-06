@@ -1,4 +1,0 @@
-interface:
-  display_name: "FM Domain Architect"
-  short_description: "Model requirements with Fulfillment Modeling"
-  default_prompt: "Use $fm-domain-architect to turn this software requirement into a Fulfillment Modeling domain diagram proposal."

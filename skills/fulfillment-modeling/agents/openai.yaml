@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fulfillment Modeling"
+  short_description: "Model requirements with contract-centered FM"
+  default_prompt: "Use $fulfillment-modeling to analyze this requirement as a Fulfillment Modeling domain model."

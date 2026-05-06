@@ -1,6 +1,6 @@
 # Fulfillment Modeling Rules
 
-Use these rules when a task needs precise FM diagram generation or validation.
+Use these rules when a task needs precise Fulfillment Modeling generation or validation.
 
 ## FM Process
 
@@ -10,7 +10,7 @@ Use these rules when a task needs precise FM diagram generation or validation.
 4. Main fulfillment items: model contract responsibilities as Fulfillment Request -> Fulfillment Confirmation pairs.
 5. Exceptions and breach flows: refund, cancellation, service suspension, reversal, and similar flows also use Request -> Confirmation pairs.
 6. Role splitting: add Party Role, Evidence As Role, Third Party Role, Context Role, and Domain Role according to business intent. For Domain Logic and Third Party roles, first ask what real-world job did this work before software existed, then name the role with job/position semantics.
-7. Participation rule: every RFP, Proposal, Fulfillment Request, Fulfillment Confirmation, and Other Evidence node must have exactly one participating Party Role.
+7. Participation rule: every RFP, Proposal, Fulfillment Request, Fulfillment Confirmation, and Other Evidence must have exactly one participating Party Role.
 8. Other Evidence vs Evidence As Role:
    - Use Other Evidence when a confirmation produces a business document or byproduct that stays inside the same context.
    - Use Evidence As Role when that same semantic bridges contexts.
@@ -27,66 +27,108 @@ Use these rules when a task needs precise FM diagram generation or validation.
    - Do not connect Contract directly to Contract or to another context's Request/Confirmation.
 12. Boundary and flow: edges should express evidence flow, role participation, and context collaboration while keeping business control flow separate from domain calculation logic.
 
-## Node Rules
+## Entity Categories
 
-Every node requires:
+- Evidence: RFP, Proposal, Contract, Fulfillment Request, Fulfillment Confirmation, Other Evidence.
+- Participant: Party, Thing.
+- Role: Party Role, Domain Role, Third Party Role, Context Role, Evidence As Role.
+- Context: bounded business context containers such as payment, inventory, invoice, delivery, subscription, service, or support.
 
-- unique virtual `id`, preferably `node-1`, `node-2`, etc.
-- `parent`; root nodes use `parent=null`, child nodes use `parent.id=<context-node-id>`.
-- `localData.name`, `localData.label`, `localData.type`, and `localData.subType`.
+## Graph Output
 
-Actual JSON shape:
+For a new model, return the complete model as React Flow-shaped nodes plus edges:
 
 ```json
 {
-  "id": "node-1",
-  "parent": null,
-  "localData": {
-    "name": "SalesContract",
-    "label": "销售合同 signed_at",
-    "type": "EVIDENCE",
-    "subType": "contract"
+  "summary": "短摘要",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "fmEvidence",
+      "position": { "x": 0, "y": 0 },
+      "parentId": "node-context-1",
+      "data": {
+        "label": "销售合同 signed_at",
+        "name": "SalesContract",
+        "category": "Evidence",
+        "kind": "Contract",
+        "notes": "可选说明"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "node-1",
+      "target": "node-2",
+      "type": "smoothstep",
+      "label": "合同触发履约申请",
+      "data": {
+        "kind": "precedes"
+      }
+    }
+  ],
+  "_meta": {
+    "validationNotes": []
   }
 }
 ```
 
-Allowed `localData.type` values:
+Use stable ids such as `node-1` and `edge-1`. Node ids must be unique across `nodes`; edge ids must be unique across `edges`. Every edge endpoint must reference a node id in the same model unless the caller provided an existing model with those ids.
 
-- `EVIDENCE`
-- `PARTICIPANT`
-- `ROLE`
-- `CONTEXT`
+Recommended node fields:
 
-Allowed `localData.subType` values:
+- `id`: stable identifier.
+- `type`: render type, such as `fmContext`, `fmEvidence`, `fmParticipant`, or `fmRole`; use `group` for generic context containers when no custom renderer exists.
+- `position`: React Flow-compatible position. Use `{ "x": 0, "y": 0 }` when layout will be computed later.
+- `parentId`: parent Context node id for child nodes inside a context. Context nodes must appear before their children.
+- `extent`: use `"parent"` when child movement should stay inside the context container.
+- `data.label`: human-readable business label.
+- `data.name`: concise technical or English identifier.
+- `data.category`: `Evidence`, `Participant`, `Role`, or `Context`.
+- `data.kind`: concrete FM kind such as `Contract`, `Party Role`, `Fulfillment Request`, `Fulfillment Confirmation`, `Evidence As Role`, or `Other Evidence`.
+- `data.notes`: optional short explanation.
 
-- `EVIDENCE`: `rfp`, `proposal`, `contract`, `fulfillment_request`, `fulfillment_confirmation`, `other_evidence`
-- `PARTICIPANT`: `party`, `thing`
-- `ROLE`: `party`, `domain`, `3rd system`, `context`, `evidence`
-- `CONTEXT`: `bounded_context`
+Recommended edge fields:
 
-Type mapping:
+- `id`: stable identifier.
+- `source`: source node id.
+- `target`: target node id.
+- `type`: React Flow edge type such as `smoothstep`, `step`, `straight`, or `default`.
+- `label`: short business phrase explaining the relationship.
+- `data.kind`: relationship intent, such as `precedes`, `fulfills`, `participates_in`, `produces`, `bridges_to`, or `contains`.
+- `sourceHandle` / `targetHandle`: optional handle ids when a custom node exposes multiple ports.
 
-- `EVIDENCE`: RFP, Proposal, Contract, Fulfillment Request, Fulfillment Confirmation, Other Evidence.
-- `PARTICIPANT`: Party, Thing.
-- `ROLE`: Party, Domain, Third Party, Other Context, Evidence As Role.
-- `CONTEXT`: business context containers such as payment, inventory, invoice, delivery, subscription, service, or support.
+For an update to a large existing model, return only changes when full output would be wasteful:
 
-Naming:
+```json
+{
+  "summary": "短摘要",
+  "changes": {
+    "addNodes": [],
+    "updateNodes": [],
+    "deleteNodes": [],
+    "addEdges": [],
+    "updateEdges": [],
+    "deleteEdges": []
+  },
+  "_meta": {
+    "validationNotes": []
+  }
+}
+```
+
+Use `changes` as an editing or transport optimization only. It must still preserve the conceptual model as nodes and edges. Within `changes`, do not repeat the same node id across `addNodes`, `updateNodes`, or `deleteNodes`, and do not repeat the same edge id across `addEdges`, `updateEdges`, or `deleteEdges`. Prefer full `nodes` and `edges` for new models, small models, or when the caller has not provided existing ids.
+
+Use `_meta` for non-rendered diagnostics. Put validation notes, assumptions, and manual review reminders in `_meta.validationNotes`. Do not put `validationNotes` at the top level.
+
+## Naming
 
 - Include evidence category and key time semantics where helpful: `started_at`, `expired_at`, `confirmed_at`, `signed_at`, `created_at`.
 - Other Evidence and Evidence As Role should usually carry `created_at`.
 - Domain Logic and Third Party roles must use human job/position names, not technical component names such as rule engine, SDK, queue, risk service, or payment gateway.
 
-Context parenting:
-
-- Context nodes are containers.
-- Put all in-context RFP/Proposal/Contract/Request/Confirmation/Role/Evidence nodes under the Context.
-- Keep Participant Party outside Context.
-- Evidence As Role parent remains the source confirmation's Context, even when it connects to a different Context.
-
 ## Edge Rules
-
-Every edge requires `sourceNode.id` and `targetNode.id` referencing existing nodes. Remove any edge whose endpoint is unknown.
 
 Main chain:
 
@@ -118,80 +160,24 @@ Direction:
 - Avoid meaningless cycles.
 - Ensure the main flow can be read left-to-right.
 
-## Proposal Operation Rules
-
-Top-level proposal fields:
-
-- `summary`
-- `operations`
-
-Actual summary shape:
-
-```json
-{
-  "message": "新增订单履约主链",
-  "addNodes": 6,
-  "addEdges": 5,
-  "updateNodes": 0,
-  "updateEdges": 0,
-  "deleteNodes": 0,
-  "deleteEdges": 0
-}
-```
-
-Supported operation types:
-
-- `ADD_NODE`
-- `UPDATE_NODE`
-- `DELETE_NODE`
-- `ADD_EDGE`
-- `UPDATE_EDGE`
-- `DELETE_EDGE`
-
-Payload rules:
-
-- `ADD_NODE` embeds a complete `node`.
-- `ADD_EDGE` embeds a complete `edge`.
-- `UPDATE_NODE` and `UPDATE_EDGE` include `targetId` and the replacement payload.
-- `DELETE_NODE` and `DELETE_EDGE` include only `targetId`.
-- `ADD_EDGE` source and target ids must refer to nodes introduced by `ADD_NODE` in the same proposal, unless the user supplied an existing diagram with those ids.
-- If update/delete targets are unreliable, prefer additions and avoid guessed destructive operations.
-
-Operation examples:
-
-```json
-{
-  "type": "ADD_EDGE",
-  "edge": {
-    "sourceNode": { "id": "node-1" },
-    "targetNode": { "id": "node-2" }
-  },
-  "reason": "合同触发履约申请"
-}
-```
-
-Do not wrap JSON responses in Markdown fences when the caller needs machine-readable proposal JSON.
-
 ## Executable Self-Check
 
-Before returning machine-readable proposal JSON, run:
+Before returning machine-readable graph JSON, run:
 
 ```bash
-python3 scripts/self_check_fm_proposal.py /tmp/proposal.json
+python3 .agents/skills/fulfillment-modeling/scripts/self_check_fm_graph.py /tmp/fm-graph.json
 ```
 
 The script checks:
 
-- Required `summary` and `operations` shape.
-- Summary add/update/delete counts match the operations array.
-- All edge source/target ids exist.
-- No endpoint is `{}`, `null`, `undefined`, empty, `node-unknown`, or invented only in edges.
-- Each RFP/Proposal/Request/Confirmation/Other Evidence has exactly one Party Role neighbor.
+- Node ids and edge ids are not duplicated.
+- Every mandatory edge has known endpoints.
+- Every RFP/Proposal/Request/Confirmation/Other Evidence has exactly one Party Role neighbor.
+- Every Fulfillment Request has one direct Contract predecessor and one Fulfillment Confirmation successor.
 - Cross-context edges are limited to Fulfillment Confirmation -> Evidence As Role and Evidence As Role -> Fulfillment Confirmation.
 - Evidence As Role does not point to Fulfillment Request.
-- Third Party Role and Context Role only connect to Other Evidence or Evidence As Role.
-- Unfixable invalid edges or uncertain nodes are removed.
+- Unfixable invalid edges or uncertain nodes are removed or marked unresolved.
 
 After the script passes, manually review semantic duplication:
 
-- Other Evidence and Evidence As Role must not duplicate the same business semantic in the same diagram.
+- Other Evidence and Evidence As Role do not duplicate the same semantic in the same model.
