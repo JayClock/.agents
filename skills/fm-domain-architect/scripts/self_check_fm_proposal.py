@@ -38,6 +38,14 @@ ROLE_LIMITED_TARGETS = {
     ("EVIDENCE", "other_evidence"),
     EVIDENCE_AS_ROLE,
 }
+OPERATION_COUNT_FIELDS = {
+    "ADD_NODE": "addNodes",
+    "ADD_EDGE": "addEdges",
+    "UPDATE_NODE": "updateNodes",
+    "UPDATE_EDGE": "updateEdges",
+    "DELETE_NODE": "deleteNodes",
+    "DELETE_EDGE": "deleteEdges",
+}
 
 
 def main() -> int:
@@ -88,6 +96,8 @@ def validate_proposal(proposal: Any) -> list[str]:
     if not isinstance(proposal, dict):
         return ["Proposal root must be a JSON object."]
 
+    errors.extend(validate_summary(proposal))
+
     operations = proposal.get("operations")
     if not isinstance(operations, list):
         return ["Proposal must contain operations as an array."]
@@ -134,6 +144,50 @@ def validate_proposal(proposal: Any) -> list[str]:
 
     errors.extend(validate_nodes(nodes))
     errors.extend(validate_edges(nodes, edges))
+    errors.extend(validate_operation_counts(proposal, operations))
+    return errors
+
+
+def validate_summary(proposal: dict[str, Any]) -> list[str]:
+    summary = proposal.get("summary")
+    if not isinstance(summary, dict):
+        return ["Proposal must contain summary as an object."]
+
+    errors: list[str] = []
+    message = summary.get("message")
+    if not isinstance(message, str) or not message.strip():
+        errors.append("summary.message must be a non-empty string.")
+
+    for field in OPERATION_COUNT_FIELDS.values():
+        value = summary.get(field)
+        if not is_non_negative_int(value):
+            errors.append(f"summary.{field} must be a non-negative integer.")
+
+    return errors
+
+
+def validate_operation_counts(
+    proposal: dict[str, Any], operations: list[Any]
+) -> list[str]:
+    summary = proposal.get("summary")
+    if not isinstance(summary, dict):
+        return []
+
+    actual = dict.fromkeys(OPERATION_COUNT_FIELDS.values(), 0)
+    for operation in operations:
+        if not isinstance(operation, dict):
+            continue
+        field = OPERATION_COUNT_FIELDS.get(operation.get("type"))
+        if field is not None:
+            actual[field] += 1
+
+    errors: list[str] = []
+    for field, count in actual.items():
+        if summary.get(field) != count:
+            errors.append(
+                f"summary.{field} must match operations count; expected {count}, found {summary.get(field)}."
+            )
+
     return errors
 
 
@@ -358,6 +412,10 @@ def normalize(value: Any) -> str | None:
         return None
     stripped = value.strip()
     return stripped or None
+
+
+def is_non_negative_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
 
 
 if __name__ == "__main__":

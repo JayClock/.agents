@@ -34,10 +34,10 @@ Use stable virtual ids such as `node-1`, `node-2`, and `edge-1`. Every edge endp
 
 ## Executable Self-Check
 
-After drafting proposal JSON, save it to a temporary file and run:
+After drafting proposal JSON, save it to a temporary file and run the bundled checker from this skill directory:
 
 ```bash
-python3 .agents/skills/fm-domain-architect/scripts/self_check_fm_proposal.py /tmp/proposal.json
+python3 scripts/self_check_fm_proposal.py /tmp/proposal.json
 ```
 
 Fix every reported error before returning the proposal. The script checks JSON shape, valid node types/subtypes, parent references, edge endpoints, Party Role participation, Request -> Confirmation pairing, Proposal/Request routing, cross-context bridge constraints, Evidence As Role constraints, and Third Party/Context Role participation constraints.

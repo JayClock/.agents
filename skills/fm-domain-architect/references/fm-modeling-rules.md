@@ -177,11 +177,13 @@ Do not wrap JSON responses in Markdown fences when the caller needs machine-read
 Before returning machine-readable proposal JSON, run:
 
 ```bash
-python3 .agents/skills/fm-domain-architect/scripts/self_check_fm_proposal.py /tmp/proposal.json
+python3 scripts/self_check_fm_proposal.py /tmp/proposal.json
 ```
 
 The script checks:
 
+- Required `summary` and `operations` shape.
+- Summary add/update/delete counts match the operations array.
 - All edge source/target ids exist.
 - No endpoint is `{}`, `null`, `undefined`, empty, `node-unknown`, or invented only in edges.
 - Each RFP/Proposal/Request/Confirmation/Other Evidence has exactly one Party Role neighbor.
