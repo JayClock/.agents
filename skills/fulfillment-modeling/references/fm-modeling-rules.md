@@ -7,7 +7,7 @@ Use these rules when a task needs precise Fulfillment Modeling generation or val
 1. Contract context first: identify Contract and its key Party Roles before other entities. Treat one Contract as one primary chain and identify the contracting sides first. Participant Party is optional supporting information, not the main modeling entry.
 2. Presales evidence: add RFP and Proposal only when the requirement contains a presales stage. If no presales stage exists, start directly from Contract.
 3. Evidence-first discovery: within each Contract context, first look for the main cash movement evidence. Create the money-related evidence that best anchors the business obligation and list key attributes such as business time point, amount, currency, payment window, quantity, or refund amount when applicable. If cash movement is weak or absent, start from the key KPI or acceptance evidence instead.
-4. Attribute source tracing: for every key attribute on the current evidence, trace its source and keep the source path clear. A source may only come from user input, a prior evidence node, or algorithmic calculation. Do not keep attributes whose source cannot be explained.
+4. Attribute source tracing: for every key attribute on the current evidence, trace its source and keep the source path clear. A source may only come from user input, a prior evidence node, or algorithmic calculation. If an amount, currency, quantity, payment window, refund amount, KPI, or acceptance metric is derived from a prior evidence node, record both the prior evidence path and the calculation rule used to derive it. Do not keep attributes whose source cannot be explained.
 5. Main fulfillment items: return from the anchor evidence to the rights and obligations it proves, then discover the surrounding evidence needed to establish, request, and confirm those obligations. Model each concrete responsibility as Fulfillment Request -> Fulfillment Confirmation pairs, and ensure every evidence node carries the key attributes needed for business traceability.
 6. Exceptions and breach flows: for refund, cancellation, service suspension, reversal, compensation, and similar breach or exception flows, repeat the same evidence discovery method from the related money evidence or KPI/acceptance evidence, then model them as their own Request -> Confirmation pairs. Continue expanding breach handling until the requirement reaches an external dispute or litigation boundary.
 7. Evidence flow before roles: first complete the mutually connected evidence flow, then refine the model around each evidence by adding the roles involved in creating, requesting, confirming, calculating, or bridging it.
@@ -105,6 +105,7 @@ Recommended node fields:
 - `data.kind`: concrete FM kind such as `Bounded Context`, `Contract`, `Party Role`, `Fulfillment Request`, `Fulfillment Confirmation`, `Evidence As Role`, or `Other Evidence`.
 - `data.attributes`: optional array for intrinsic business attributes of the node, including lifecycle time semantics when relevant. Each item should include `name`, `label`, `valueType`, `required`, and `meaning` when known.
   Evidence lifecycle attributes are mandatory for these kinds: RFP/Proposal/Fulfillment Request include `startedAt` and `expiredAt`; Contract includes `signedAt`; Fulfillment Confirmation includes `confirmedAt`; Other Evidence includes `createdAt`. Each mandatory lifecycle item must use `valueType: "DateTime"` and `required: true`.
+  Any derived attribute should include `calculationRule`. This applies to lifecycle times, amounts, quantities, refund values, KPI metrics, acceptance metrics, eligibility flags, and other values derived from prior evidence or algorithmic calculation. When prior evidence is used, `calculationRule` must include the source evidence attribute path, such as `refundAmount = ColumnSubscriptionContract.columnPrice`. When the value is derived from attributes on the same evidence, local attribute names are acceptable, such as `expiredAt = startedAt + 15 minutes`. Direct user-input values may omit `calculationRule`.
 - `data.notes`: optional short explanation.
 
 Recommended edge fields:
@@ -264,13 +265,6 @@ Complete example for a medium-sized model:
             "valueType": "Money",
             "required": true,
             "meaning": "专栏订阅应付金额"
-          },
-          {
-            "name": "paymentDeadlineAt",
-            "label": "支付截止时间",
-            "valueType": "DateTime",
-            "required": true,
-            "meaning": "下单后15分钟内完成支付的截止时间"
           }
         ]
       }
@@ -371,7 +365,8 @@ Complete example for a medium-sized model:
             "label": "退款金额",
             "valueType": "Money",
             "required": true,
-            "meaning": "申请退回的全额金额"
+            "meaning": "申请退回的全额金额",
+            "calculationRule": "refundAmount = ColumnSubscriptionContract.columnPrice"
           },
           {
             "name": "breachReason",
@@ -407,7 +402,8 @@ Complete example for a medium-sized model:
             "label": "退款金额",
             "valueType": "Money",
             "required": true,
-            "meaning": "实际确认退回的金额"
+            "meaning": "实际确认退回的金额",
+            "calculationRule": "refundAmount = FullRefundRequest.refundAmount"
           }
         ]
       }
@@ -469,7 +465,8 @@ Complete example for a medium-sized model:
             "label": "应付金额",
             "valueType": "Money",
             "required": true,
-            "meaning": "本次支付订单需要支付的金额"
+            "meaning": "本次支付订单需要支付的金额",
+            "calculationRule": "payableAmount = ColumnSubscriptionContract.columnPrice"
           },
           {
             "name": "paymentMethod",
@@ -505,14 +502,16 @@ Complete example for a medium-sized model:
             "label": "失效时间",
             "valueType": "DateTime",
             "required": true,
-            "meaning": "支付申请的业务失效时间"
+            "meaning": "支付申请的业务失效时间",
+            "calculationRule": "expiredAt = startedAt + 15 minutes"
           },
           {
             "name": "amount",
             "label": "支付金额",
             "valueType": "Money",
             "required": true,
-            "meaning": "本次支付申请金额"
+            "meaning": "本次支付申请金额",
+            "calculationRule": "amount = PaymentContract.payableAmount"
           }
         ]
       }
@@ -541,7 +540,8 @@ Complete example for a medium-sized model:
             "label": "实付金额",
             "valueType": "Money",
             "required": true,
-            "meaning": "实际支付成功的金额"
+            "meaning": "实际支付成功的金额",
+            "calculationRule": "paidAmount = PaymentRequest.amount"
           },
           {
             "name": "paymentChannelTxnId",
@@ -603,7 +603,8 @@ Complete example for a medium-sized model:
             "label": "退款金额",
             "valueType": "Money",
             "required": true,
-            "meaning": "实际退回用户的金额"
+            "meaning": "实际退回用户的金额",
+            "calculationRule": "refundAmount = RefundApprovalConfirmation.refundAmount"
           }
         ]
       }
@@ -808,7 +809,7 @@ Complete example for a medium-sized model:
   "_meta": {
     "validationNotes": [
       "示例同时展示了主合同上下文、支付上下文、退款异常流，以及通过 Evidence As Role 进行的跨上下文确认桥接。",
-      "建模时仍应根据具体需求补充属性来源说明，例如 columnPrice 来自 Proposal 或商品定价规则，paymentDeadlineAt 来自下单时间加15分钟算法计算。"
+      "建模时仍应根据具体需求补充属性来源说明，例如 columnPrice 来自 Proposal 或商品定价规则，PaymentRequest.expiredAt 来自 startedAt 加15分钟算法计算。"
     ]
   }
 }
