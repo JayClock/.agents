@@ -67,7 +67,7 @@ After drafting graph JSON, save it to a temporary file and run:
 python3 .agents/skills/fulfillment-modeling/scripts/self_check_fm_graph.py /tmp/fm-graph.json
 ```
 
-Fix every reported error before returning the graph. The script checks React Flow-shaped node/edge structure, duplicate ids, duplicate node `data.name` values, endpoint existence, parent Context references, Party Role participation, Request -> Confirmation pairing, Proposal/Request routing, cross-context bridge constraints, Evidence As Role constraints, and Third Party/Context Role participation constraints.
+Fix every reported error before returning the graph. The script checks React Flow-shaped node/edge structure, node `type` equals `data.category`, duplicate ids, duplicate node `data.name` values, endpoint existence, parent Context references, Party Role participation, Request -> Confirmation pairing, Proposal/Request routing, cross-context bridge constraints, Evidence As Role constraints, and Third Party/Context Role participation constraints.
 
 Manually review semantic duplication after the script passes:
 

@@ -228,6 +228,13 @@ def validate_nodes(nodes: dict[str, dict[str, Any]]) -> list[str]:
             errors.append(
                 f"Node '{node_id}' data.category must be one of {sorted(CATEGORIES)}; found '{category}'."
             )
+        node_type = normalize(node.get("type"))
+        if node_type is None:
+            errors.append(f"Node '{node_id}' type must equal data.category; found empty type.")
+        elif category in CATEGORIES and node_type != category:
+            errors.append(
+                f"Node '{node_id}' type must equal data.category; found type '{node_type}' and category '{category}'."
+            )
         if kind is None:
             errors.append(f"Node '{node_id}' data.kind must be a non-empty string.")
         if normalize(data.get("label")) is None:
