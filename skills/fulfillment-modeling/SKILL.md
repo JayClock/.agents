@@ -57,7 +57,7 @@ For an update to a large existing model, return only the changes when that is mo
 }
 ```
 
-Use the complete `nodes`/`edges` model to express "what the domain model is". Keep validation and diagnostic notes under `_meta.validationNotes`, not as top-level graph fields. Node ids must be unique across `nodes`; edge ids must be unique across `edges`. In `changes`, ids must not be duplicated across add/update/delete arrays for the same graph element type. Use `changes` only as an editing/transport optimization for existing models. Do not introduce project-specific persistence payload fields, enum spellings, operation names, or validation scripts unless another skill or the user provides that target schema.
+Use the complete `nodes`/`edges` model to express "what the domain model is". Keep validation and diagnostic notes under `_meta.validationNotes`, not as top-level graph fields. Node ids must be unique across `nodes`; node `data.name` values must be non-empty and unique across `nodes`; edge ids must be unique across `edges`. In `changes`, ids must not be duplicated across add/update/delete arrays for the same graph element type. Use `changes` only as an editing/transport optimization for existing models. Do not introduce project-specific persistence payload fields, enum spellings, operation names, or validation scripts unless another skill or the user provides that target schema.
 
 ## Executable Self-Check
 
@@ -67,7 +67,7 @@ After drafting graph JSON, save it to a temporary file and run:
 python3 .agents/skills/fulfillment-modeling/scripts/self_check_fm_graph.py /tmp/fm-graph.json
 ```
 
-Fix every reported error before returning the graph. The script checks React Flow-shaped node/edge structure, duplicate ids, endpoint existence, parent Context references, Party Role participation, Request -> Confirmation pairing, Proposal/Request routing, cross-context bridge constraints, Evidence As Role constraints, and Third Party/Context Role participation constraints.
+Fix every reported error before returning the graph. The script checks React Flow-shaped node/edge structure, duplicate ids, duplicate node `data.name` values, endpoint existence, parent Context references, Party Role participation, Request -> Confirmation pairing, Proposal/Request routing, cross-context bridge constraints, Evidence As Role constraints, and Third Party/Context Role participation constraints.
 
 Manually review semantic duplication after the script passes:
 

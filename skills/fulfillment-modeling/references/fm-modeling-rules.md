@@ -90,7 +90,7 @@ For a new model, return the complete model as React Flow-shaped nodes plus edges
 }
 ```
 
-Use stable ids such as `node-1` and `edge-1`. Node ids must be unique across `nodes`; edge ids must be unique across `edges`. Every edge endpoint must reference a node id in the same model unless the caller provided an existing model with those ids.
+Use stable ids such as `node-1` and `edge-1`. Node ids must be unique across `nodes`; node `data.name` values must be non-empty and unique across `nodes`; edge ids must be unique across `edges`. Every edge endpoint must reference a node id in the same model unless the caller provided an existing model with those ids.
 
 Recommended node fields:
 
@@ -100,7 +100,7 @@ Recommended node fields:
 - `parentId`: parent Context node id for child nodes inside a context. Context nodes must appear before their children.
 - `extent`: use `"parent"` when child movement should stay inside the context container.
 - `data.label`: human-readable business label.
-- `data.name`: concise technical or English identifier.
+- `data.name`: concise technical or English identifier; must be unique across nodes in the same model.
 - `data.category`: `Evidence`, `Participant`, `Role`, or `Context`.
 - `data.kind`: concrete FM kind such as `Contract`, `Party Role`, `Fulfillment Request`, `Fulfillment Confirmation`, `Evidence As Role`, or `Other Evidence`.
 - `data.attributes`: optional array for intrinsic business attributes of the node, including lifecycle time semantics when relevant. Each item should include `name`, `label`, `valueType`, `required`, and `meaning` when known.
@@ -192,7 +192,7 @@ python3 .agents/skills/fulfillment-modeling/scripts/self_check_fm_graph.py /tmp/
 
 The script checks:
 
-- Node ids and edge ids are not duplicated.
+- Node ids, node `data.name` values, and edge ids are not duplicated.
 - Every mandatory edge has known endpoints.
 - Every RFP/Proposal/Request/Confirmation/Other Evidence has exactly one Party Role neighbor.
 - Every Fulfillment Request has one direct Contract predecessor and one Fulfillment Confirmation successor.

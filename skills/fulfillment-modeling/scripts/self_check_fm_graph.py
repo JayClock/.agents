@@ -206,11 +206,23 @@ def collect_edges(edges_value: list[Any], errors: list[str]) -> list[tuple[str, 
 
 def validate_nodes(nodes: dict[str, dict[str, Any]]) -> list[str]:
     errors: list[str] = []
+    node_names: dict[str, str] = {}
     for node_id, node in nodes.items():
         data = node.get("data")
         if not isinstance(data, dict):
             errors.append(f"Node '{node_id}' must provide data.")
             continue
+        name = normalize(data.get("name"))
+        if name is None:
+            errors.append(f"Node '{node_id}' data.name must be a non-empty string.")
+        else:
+            previous_node_id = node_names.get(name)
+            if previous_node_id is not None:
+                errors.append(
+                    f"Duplicate node data.name '{name}' on nodes '{previous_node_id}' and '{node_id}'."
+                )
+            else:
+                node_names[name] = node_id
         category, kind = node_kind(node)
         if category not in CATEGORIES:
             errors.append(
