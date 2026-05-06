@@ -104,6 +104,7 @@ Recommended node fields:
 - `data.category`: `Evidence`, `Participant`, `Role`, or `Context`.
 - `data.kind`: concrete FM kind such as `Bounded Context`, `Contract`, `Party Role`, `Fulfillment Request`, `Fulfillment Confirmation`, `Evidence As Role`, or `Other Evidence`.
 - `data.attributes`: optional array for intrinsic business attributes of the node, including lifecycle time semantics when relevant. Each item should include `name`, `label`, `valueType`, `required`, and `meaning` when known.
+  Evidence lifecycle attributes are mandatory for these kinds: RFP/Proposal/Fulfillment Request include `startedAt` and `expiredAt`; Contract includes `signedAt`; Fulfillment Confirmation includes `confirmedAt`; Other Evidence includes `createdAt`. Each mandatory lifecycle item must use `valueType: "DateTime"` and `required: true`.
 - `data.notes`: optional short explanation.
 
 Recommended edge fields:
@@ -234,6 +235,13 @@ Complete example for a medium-sized model:
         "kind": "Contract",
         "attributes": [
           {
+            "name": "signedAt",
+            "label": "签署时间",
+            "valueType": "DateTime",
+            "required": true,
+            "meaning": "用户提交订阅订单并形成订阅合同的业务时间"
+          },
+          {
             "name": "orderedAt",
             "label": "下单时间",
             "valueType": "DateTime",
@@ -270,11 +278,18 @@ Complete example for a medium-sized model:
         "kind": "Fulfillment Request",
         "attributes": [
           {
-            "name": "requestedAt",
-            "label": "申请时间",
+            "name": "startedAt",
+            "label": "开始时间",
             "valueType": "DateTime",
             "required": true,
             "meaning": "平台收到支付成功后发起权限开通的时间"
+          },
+          {
+            "name": "expiredAt",
+            "label": "失效时间",
+            "valueType": "DateTime",
+            "required": true,
+            "meaning": "阅读权限开通申请的业务失效时间"
           },
           {
             "name": "subscriptionOrderId",
@@ -299,8 +314,8 @@ Complete example for a medium-sized model:
         "kind": "Fulfillment Confirmation",
         "attributes": [
           {
-            "name": "grantedAt",
-            "label": "开通时间",
+            "name": "confirmedAt",
+            "label": "确认时间",
             "valueType": "DateTime",
             "required": true,
             "meaning": "平台完成专栏阅读权限开通的业务时间"
@@ -328,11 +343,18 @@ Complete example for a medium-sized model:
         "kind": "Fulfillment Request",
         "attributes": [
           {
-            "name": "requestedAt",
-            "label": "申请时间",
+            "name": "startedAt",
+            "label": "开始时间",
             "valueType": "DateTime",
             "required": true,
             "meaning": "用户因专栏长期断更发起退款申请的时间"
+          },
+          {
+            "name": "expiredAt",
+            "label": "失效时间",
+            "valueType": "DateTime",
+            "required": true,
+            "meaning": "退款申请的业务失效时间"
           },
           {
             "name": "refundAmount",
@@ -419,6 +441,13 @@ Complete example for a medium-sized model:
         "kind": "Contract",
         "attributes": [
           {
+            "name": "signedAt",
+            "label": "签署时间",
+            "valueType": "DateTime",
+            "required": true,
+            "meaning": "支付订单建立并形成支付合同的业务时间"
+          },
+          {
             "name": "createdAt",
             "label": "创建时间",
             "valueType": "DateTime",
@@ -455,11 +484,18 @@ Complete example for a medium-sized model:
         "kind": "Fulfillment Request",
         "attributes": [
           {
-            "name": "requestedAt",
-            "label": "申请时间",
+            "name": "startedAt",
+            "label": "开始时间",
             "valueType": "DateTime",
             "required": true,
             "meaning": "用户发起移动支付的业务时间"
+          },
+          {
+            "name": "expiredAt",
+            "label": "失效时间",
+            "valueType": "DateTime",
+            "required": true,
+            "meaning": "支付申请的业务失效时间"
           },
           {
             "name": "amount",
@@ -484,8 +520,8 @@ Complete example for a medium-sized model:
         "kind": "Fulfillment Confirmation",
         "attributes": [
           {
-            "name": "paidAt",
-            "label": "支付成功时间",
+            "name": "confirmedAt",
+            "label": "确认时间",
             "valueType": "DateTime",
             "required": true,
             "meaning": "移动支付成功的业务时间"
@@ -766,8 +802,13 @@ Use `_meta` for non-rendered diagnostics. Put validation notes, assumptions, and
 - Return key time semantics as items in `data.attributes` when helpful.
 - Return entity attributes in `data.attributes`; do not encode them in `data.label`.
 - Keep `data.attributes` for state or facts owned by that node.
+- Required lifecycle attributes must be present in `data.attributes` with `valueType: "DateTime"` and `required: true`:
+  - RFP, Proposal, and Fulfillment Request must include `startedAt` and `expiredAt`.
+  - Contract must include `signedAt`.
+  - Fulfillment Confirmation must include `confirmedAt`.
+  - Other Evidence must include `createdAt`.
 - Model concrete business actions, decisions, calculations, and lifecycle transitions with Fulfillment Request/Fulfillment Confirmation nodes and flow edges.
-- Other Evidence and Evidence As Role should usually include a `createdAt` DateTime item in `data.attributes`.
+- Evidence As Role should usually include a `createdAt` DateTime item in `data.attributes`.
 - Domain Logic and Third Party roles must use human job/position names, not technical component names such as rule engine, SDK, queue, risk service, or payment gateway.
 
 ## Edge Rules
@@ -815,6 +856,7 @@ The script checks:
 
 - Node ids, node `data.name` values, and edge ids are not duplicated.
 - Every node `type` equals its `data.category`.
+- Evidence lifecycle attributes are present with `valueType: "DateTime"` and `required: true`: RFP/Proposal/Fulfillment Request require `startedAt` and `expiredAt`; Contract requires `signedAt`; Fulfillment Confirmation requires `confirmedAt`; Other Evidence requires `createdAt`.
 - Every mandatory edge has known endpoints.
 - Every RFP/Proposal/Request/Confirmation/Other Evidence has exactly one Party Role neighbor.
 - Every Fulfillment Request has one direct Contract predecessor and one Fulfillment Confirmation successor.

@@ -18,6 +18,14 @@ EVIDENCE_KINDS_REQUIRING_PARTY_ROLE = {
     "Fulfillment Confirmation",
     "Other Evidence",
 }
+REQUIRED_LIFECYCLE_ATTRIBUTES = {
+    "RFP": ("startedAt", "expiredAt"),
+    "Proposal": ("startedAt", "expiredAt"),
+    "Fulfillment Request": ("startedAt", "expiredAt"),
+    "Contract": ("signedAt",),
+    "Fulfillment Confirmation": ("confirmedAt",),
+    "Other Evidence": ("createdAt",),
+}
 THIRD_OR_CONTEXT_ROLE_KINDS = {"Third Party Role", "Context Role"}
 ROLE_LIMITED_TARGETS = {
     ("Evidence", "Other Evidence"),
@@ -254,6 +262,52 @@ def validate_nodes(nodes: dict[str, dict[str, Any]]) -> list[str]:
 
         if node_kind(node) == ("Participant", "Party") and parent_id is not None:
             errors.append(f"Participant Party node '{node_id}' must stay outside Context.")
+
+        errors.extend(validate_lifecycle_attributes(node_id, node))
+
+    return errors
+
+
+def validate_lifecycle_attributes(node_id: str, node: dict[str, Any]) -> list[str]:
+    category, kind = node_kind(node)
+    if category != "Evidence" or kind not in REQUIRED_LIFECYCLE_ATTRIBUTES:
+        return []
+
+    data = node.get("data")
+    if not isinstance(data, dict):
+        return []
+
+    attributes = data.get("attributes")
+    if not isinstance(attributes, list):
+        return [
+            f"Evidence node '{node_id}' ({kind}) must provide data.attributes with required lifecycle attributes: {', '.join(REQUIRED_LIFECYCLE_ATTRIBUTES[kind])}."
+        ]
+
+    by_name: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    for index, attribute in enumerate(attributes):
+        if not isinstance(attribute, dict):
+            errors.append(f"Node '{node_id}' data.attributes[{index}] must be an object.")
+            continue
+        name = normalize(attribute.get("name"))
+        if name is not None:
+            by_name[name] = attribute
+
+    for required_name in REQUIRED_LIFECYCLE_ATTRIBUTES[kind]:
+        attribute = by_name.get(required_name)
+        if attribute is None:
+            errors.append(
+                f"Evidence node '{node_id}' ({kind}) must include required DateTime lifecycle attribute '{required_name}'."
+            )
+            continue
+        if attribute.get("valueType") != "DateTime":
+            errors.append(
+                f"Evidence node '{node_id}' lifecycle attribute '{required_name}' must have valueType 'DateTime'."
+            )
+        if attribute.get("required") is not True:
+            errors.append(
+                f"Evidence node '{node_id}' lifecycle attribute '{required_name}' must have required: true."
+            )
 
     return errors
 
