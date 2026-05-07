@@ -1,6 +1,6 @@
 ---
 name: fulfillment-modeling
-description: General Fulfillment Modeling guidance for analyzing business/software requirements into contract-centered graph models shaped like React Flow nodes/edges. Use when Codex needs to output complete nodes/edges, update an existing model with changes, identify Contract contexts, Party Roles, presales evidence, Fulfillment Request/Fulfillment Confirmation pairs, Other Evidence, Evidence As Role, multi-contract boundaries, or valid FM edge constraints without binding to a specific project persistence schema.
+description: General Fulfillment Modeling guidance for analyzing business/software requirements into contract-centered graph models shaped like React Flow nodes/edges. Use when Codex needs to output complete nodes/edges, update an existing model with changes, identify Contract contexts, Party Roles, presales evidence, Fulfillment Request/Fulfillment Confirmation pairs, Other Evidence, Evidence As Role, multi-contract boundaries, valid FM edge constraints, or map ontology-driven seven-layer modeling concepts into FM without binding to a specific project persistence schema.
 ---
 
 # Fulfillment Modeling
@@ -19,7 +19,8 @@ Model requirements with Fulfillment Modeling (FM): start from contracts and busi
 6. Add Domain, Third Party, Context, or Evidence roles only when they represent real business participation. Name Domain Logic and Third Party roles as human job/position semantics from the pre-software world, not as technical systems.
 7. Put business-chain nodes inside their Context. Keep Participant Party outside Context containers.
 8. Create edges from cause to result or initiator to action so the model reads left-to-right as business flow. Each React Flow edge is a single 1:1 source-to-target relation; model aggregate one-to-many relationships as multiple independent 1:1 edges. Put endpoint relationship display text in `edge.data.sourceRelation` and `edge.data.targetRelation`, both set to `"1"`.
-9. Run `scripts/self_check_fm_graph.py` on the generated graph JSON before returning any machine-readable model.
+9. When the user asks about seven-layer ontology-driven modeling, use it as a coverage lens over the FM graph; keep FM's Contract/Evidence/Request/Confirmation semantics as the source of truth.
+10. Run `scripts/self_check_fm_graph.py` on the generated graph JSON before returning any machine-readable model.
 
 ## Output Guidance
 
@@ -66,7 +67,7 @@ Use the complete `nodes`/`edges` model to express "what the domain model is". Ke
 After drafting graph JSON, save it to a temporary file and run:
 
 ```bash
-python3 .agents/skills/fulfillment-modeling/scripts/self_check_fm_graph.py /tmp/fm-graph.json
+python3 .agents/skills/modeling/scripts/self_check_fm_graph.py /tmp/fm-graph.json
 ```
 
 Fix every reported error before returning the graph. The script checks React Flow-shaped node/edge structure, supported built-in React Flow edge `type` values or custom types declared in `_meta.registeredEdgeTypes`, per-edge endpoint relation data, FM line styling, node `type` equals `data.category`, duplicate ids, duplicate node `data.name` values, endpoint existence, parent Context references, Party Role participation, Request -> Confirmation pairing, Proposal/Request routing, cross-context bridge constraints, Evidence As Role constraints, and Third Party/Context Role participation constraints.
@@ -78,3 +79,5 @@ Manually review semantic duplication after the script passes:
 ## Reference
 
 Read `references/fm-modeling-rules.md` when generating or reviewing a complete FM model, especially for multi-contract contexts, Evidence As Role, role participation constraints, React Flow-shaped graph output, patch output, or boundary rules.
+
+Read `references/seven-layer-fm-integration.md` when mapping object, behavior, rule, scenario, subject, exception, and quality modeling concepts into FM, or when checking whether an FM graph covers those seven dimensions.

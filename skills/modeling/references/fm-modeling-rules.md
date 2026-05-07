@@ -29,6 +29,7 @@ Use these rules when a task needs precise Fulfillment Modeling generation or val
    - Different contract contexts may only bridge through Fulfillment Confirmation -> Evidence As Role -> Fulfillment Confirmation.
    - Do not connect Contract directly to Contract or to another context's Request/Confirmation.
 15. Boundary and flow: after roles and participants are clear, place Party and Thing into the appropriate domain boundaries. Edges should express evidence flow, role participation, and context collaboration while keeping business control flow separate from domain calculation logic.
+16. Seven-layer coverage: when the task references ontology-driven seven-layer modeling, apply it as a completeness check after the FM chain is coherent. Preserve FM node kinds and edge constraints; do not add generic M1-M7 nodes unless explicitly requested. See `seven-layer-fm-integration.md`.
 
 ## Entity Categories
 
@@ -986,7 +987,7 @@ Direction:
 Before returning machine-readable graph JSON, run:
 
 ```bash
-python3 .agents/skills/fulfillment-modeling/scripts/self_check_fm_graph.py /tmp/fm-graph.json
+python3 .agents/skills/modeling/scripts/self_check_fm_graph.py /tmp/fm-graph.json
 ```
 
 The script checks:
