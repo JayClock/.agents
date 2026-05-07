@@ -70,11 +70,21 @@ When two sources contradict on a factual claim, note both positions and the evid
 
 Write the outline for the article. For each section: note the source materials it draws from. If a section has no sources, either it does not belong or a source needs to be found first.
 
+The outline must include two learning-oriented sections unless the user explicitly asks for a different structure:
+- **Knowledge classification** -- classify the material into useful knowledge types, such as concepts, facts, frameworks, procedures, examples, tacit knowledge, assumptions, controversies, and meta-cognitive lessons. Explain what each type is useful for and which parts of the source material belong there.
+- **How to raise cognitive level** -- explain how the reader can move from confusion to understanding, from trial-and-error to expert judgment, and from expert judgment to reusable explicit knowledge. Include concrete practices, feedback loops, diagnostic questions, and examples tied to the topic.
+
 Do not start Phase 4 until the outline is solid.
 
 ## Phase 4: Fill In
 
 Work through the outline section by section. If a section is hard to write, the mental model is still weak there: return to Phase 2 for that sub-topic. The outline may change, and that is fine.
+
+When filling in learning-oriented output, do not only explain the topic. Also show the reader how to learn the topic better:
+- Separate what must be memorized, what must be understood, what must be practiced, and what must be reflected on.
+- Name the tacit knowledge hidden in the material and describe what kind of experience or feedback is needed to acquire it.
+- Convert high-level advice into operational exercises, checklists, experiments, or reflection prompts.
+- Make cognitive progression explicit: what a beginner sees, what an intermediate practitioner starts to notice, and what an expert can diagnose or simplify.
 
 Stall signals (any one means the mental model is incomplete for this section):
 - You have rewritten the opening sentence three or more times without settling
