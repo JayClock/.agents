@@ -105,8 +105,62 @@ Recommended node fields:
 - `data.kind`: concrete FM kind such as `Bounded Context`, `Contract`, `Party Role`, `Fulfillment Request`, `Fulfillment Confirmation`, `Evidence As Role`, or `Other Evidence`.
 - `data.attributes`: optional array for intrinsic business attributes of the node, including lifecycle time semantics when relevant. Each item should include `name`, `label`, `valueType`, `required`, and `meaning` when known.
   Evidence lifecycle attributes are mandatory for these kinds: RFP/Proposal/Fulfillment Request include `startedAt` and `expiredAt`; Contract includes `signedAt`; Fulfillment Confirmation includes `confirmedAt`; Other Evidence includes `createdAt`. Each mandatory lifecycle item must use `valueType: "DateTime"` and `required: true`.
-  Any derived attribute should include `calculationRule`. This applies to lifecycle times, amounts, quantities, refund values, KPI metrics, acceptance metrics, eligibility flags, and other values derived from prior evidence or algorithmic calculation. When prior evidence is used, `calculationRule` must include the source evidence attribute path, such as `refundAmount = ColumnSubscriptionContract.columnPrice`. When the value is derived from attributes on the same evidence, local attribute names are acceptable, such as `expiredAt = startedAt + 15 minutes`. Direct user-input values may omit `calculationRule`.
+  Any derived attribute should include `calculationRule`. This applies to lifecycle times, amounts, quantities, refund values, KPI metrics, acceptance metrics, eligibility flags, and other values derived from prior evidence or algorithmic calculation. When prior evidence is used, `calculationRule` must include the source evidence attribute path, such as `refundAmount = ColumnSubscriptionContract.columnPrice`. When the value is derived from attributes on the same evidence, local attribute names are acceptable, such as `expiredAt = startedAt + duration("PT30M")`. Direct user-input values may omit `calculationRule`. See "Attribute Calculation Rules" for expression style.
 - `data.notes`: optional short explanation.
+
+### Attribute Calculation Rules
+
+Use parseable expression-style rules for derived attributes. Do not write natural-language fragments such as `is absent`, `when ...`, `before shipment`, or `after payment` inside `calculationRule`.
+
+- `calculationRule` must be an assignment expression in the form `<targetAttribute> = <expression>`.
+- Refer to prior evidence attributes with explicit paths, such as `PaymentConfirmation.paidAmount` or `ShipmentConfirmation.confirmedAt`.
+- Use local attribute names only when deriving from attributes on the same evidence, such as `expiredAt = startedAt + duration("PT30M")`.
+- Use standard boolean operators and comparison operators: `&&`, `||`, `!`, `==`, `!=`, `<`, `<=`, `>`, `>=`.
+- Use explicit null checks: `isNull(ShipmentConfirmation.confirmedAt)` and `notNull(PaymentConfirmation.confirmedAt)`.
+- Use conditional expressions when a value must fall back to another value: `cancelledQuantity = if(OrderCancellationRequest.cancelable == true, OrderSalesContract.quantity, 0)`.
+- Prefer a separate `precondition` field when the attribute only exists or is only valid under a business condition. In that case, keep `calculationRule` focused on the value calculation.
+- `precondition` should also use parseable boolean expressions, such as `OrderCancellationRequest.cancelable == true`.
+- Time offsets should use explicit duration notation, such as `expiredAt = startedAt + duration("PT30M")`, `expiredAt = startedAt + duration("PT48H")`, or `expiredAt = startedAt + duration("P7D")`.
+- Avoid mixing explanation and calculation. Put business explanation in `meaning` or `notes`, and put only the executable or machine-checkable rule in `calculationRule` and `precondition`.
+
+Prefer machine-checkable expressions for these derived attribute scenarios:
+
+- Lifecycle windows and deadlines: `expiredAt = startedAt + duration("PT30M")`.
+- Amount propagation: `payableAmount = OrderSalesContract.orderAmount`.
+- Amount calculation, including refund, compensation, penalty, fee, tax, discount, commission, and settlement values: `refundAmount = PaymentConfirmation.paidAmount - CouponConfirmation.discountAmount`.
+- Quantity propagation and calculation, including ordered, reserved, shipped, accepted, cancelled, returned, and available quantities: `availableQuantity = InventoryConfirmation.totalQuantity - InventoryConfirmation.reservedQuantity`.
+- Eligibility, permission, or capability flags: `cancelable = notNull(PaymentConfirmation.confirmedAt) && isNull(ShipmentConfirmation.confirmedAt)`.
+- Acceptance or quality metrics: `accepted = QualityInspectionConfirmation.defectRate <= QualityContract.maxDefectRate`.
+- SLA and breach detection: `slaBreached = DeliveryConfirmation.confirmedAt > ShipmentFulfillmentRequest.expiredAt`.
+- Conditional compensation or fallback values: `compensationAmount = if(slaBreached == true, PaymentConfirmation.paidAmount * 0.1, 0)`.
+- Status classification derived from evidence completion: `fulfillmentStatus = if(notNull(DeliveryAcceptanceConfirmation.confirmedAt), "COMPLETED", "IN_PROGRESS")`.
+- Risk, review, or escalation decisions: `manualReviewRequired = OrderSalesContract.orderAmount >= 5000 || BuyerRiskConfirmation.riskLevel == "HIGH"`.
+- Cross-evidence consistency checks: `amountMatched = PaymentConfirmation.paidAmount == OrderSalesContract.orderAmount`.
+
+Example:
+
+```json
+{
+  "name": "cancelable",
+  "label": "是否可取消",
+  "valueType": "Boolean",
+  "required": true,
+  "meaning": "订单是否满足发货前取消条件",
+  "calculationRule": "cancelable = notNull(PaymentConfirmation.confirmedAt) && isNull(ShipmentConfirmation.confirmedAt)"
+}
+```
+
+```json
+{
+  "name": "cancelledQuantity",
+  "label": "取消数量",
+  "valueType": "Number",
+  "required": true,
+  "meaning": "取消履约的商品数量",
+  "precondition": "OrderCancellationRequest.cancelable == true",
+  "calculationRule": "cancelledQuantity = OrderSalesContract.quantity"
+}
+```
 
 Recommended edge fields:
 
@@ -503,7 +557,7 @@ Complete example for a medium-sized model:
             "valueType": "DateTime",
             "required": true,
             "meaning": "支付申请的业务失效时间",
-            "calculationRule": "expiredAt = startedAt + 15 minutes"
+            "calculationRule": "expiredAt = startedAt + duration(\"PT15M\")"
           },
           {
             "name": "amount",
