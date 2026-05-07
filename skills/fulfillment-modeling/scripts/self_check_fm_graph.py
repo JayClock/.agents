@@ -87,7 +87,8 @@ def validate_graph(graph: Any) -> list[str]:
     if not isinstance(graph, dict):
         return ["Graph root must be a JSON object."]
 
-    meta_errors = validate_meta(graph.get("_meta"))
+    meta = graph.get("_meta")
+    meta_errors = validate_meta(meta)
     if meta_errors:
         return meta_errors
     if "validationNotes" in graph:
@@ -113,7 +114,7 @@ def validate_graph(graph: Any) -> list[str]:
     edges = collect_edges(edges_value, errors)
 
     errors.extend(validate_nodes(nodes))
-    errors.extend(validate_edges(nodes, edges))
+    errors.extend(validate_edges(nodes, edges, registered_edge_types(meta)))
     return errors
 
 
@@ -125,7 +126,25 @@ def validate_meta(meta: Any) -> list[str]:
     validation_notes = meta.get("validationNotes")
     if validation_notes is not None and not isinstance(validation_notes, list):
         return ["_meta.validationNotes must be an array when provided."]
+    registered_edge_types = meta.get("registeredEdgeTypes")
+    if registered_edge_types is not None:
+        if not isinstance(registered_edge_types, list):
+            return ["_meta.registeredEdgeTypes must be an array when provided."]
+        invalid_types = [
+            value for value in registered_edge_types if normalize(value) is None
+        ]
+        if invalid_types:
+            return ["_meta.registeredEdgeTypes must contain only non-empty strings."]
     return []
+
+
+def registered_edge_types(meta: Any) -> set[str]:
+    if not isinstance(meta, dict):
+        return set()
+    values = meta.get("registeredEdgeTypes")
+    if not isinstance(values, list):
+        return set()
+    return {value.strip() for value in values if isinstance(value, str) and value.strip()}
 
 
 def validate_change_id_uniqueness(changes: dict[str, Any]) -> list[str]:
@@ -211,8 +230,13 @@ def collect_edges(
             errors.append(f"Duplicate edge id '{edge_id}'.")
             continue
         edge_ids.add(edge_id)
+        if not isinstance(edge.get("source"), str) or not isinstance(edge.get("target"), str):
+            errors.append(
+                f"edges[{index}] source and target must each be one node id string; use multiple 1:1 edge objects for one-to-many relationships."
+            )
+            continue
         if source is None or target is None:
-            errors.append(f"edges[{index}] must provide source and target.")
+            errors.append(f"edges[{index}] must provide non-empty source and target.")
             continue
         edges.append((edge_id, source, target, index, edge))
     return edges
@@ -319,7 +343,9 @@ def validate_lifecycle_attributes(node_id: str, node: dict[str, Any]) -> list[st
 
 
 def validate_edges(
-    nodes: dict[str, dict[str, Any]], edges: list[tuple[str, str, str, int, dict[str, Any]]]
+    nodes: dict[str, dict[str, Any]],
+    edges: list[tuple[str, str, str, int, dict[str, Any]]],
+    registered_types: set[str],
 ) -> list[str]:
     errors: list[str] = []
     adjacency: dict[str, list[str]] = defaultdict(list)
@@ -336,25 +362,43 @@ def validate_edges(
         adjacency[target].append(source)
         directed_edges.append((source, target, index))
         visual_edges.append((source, target, index, edge))
+        errors.extend(validate_edge_relation_data(edge, index))
 
     errors.extend(validate_party_role_participation(nodes, adjacency))
     errors.extend(validate_request_confirmation_chain(nodes, directed_edges))
     errors.extend(validate_role_edge_constraints(nodes, directed_edges, adjacency))
-    errors.extend(validate_edge_visual_rules(nodes, visual_edges))
+    errors.extend(validate_edge_visual_rules(nodes, visual_edges, registered_types))
     return errors
 
 
+def validate_edge_relation_data(edge: dict[str, Any], index: int) -> list[str]:
+    data = edge.get("data")
+    if not isinstance(data, dict):
+        return [
+            f"edges[{index}] must provide data.sourceRelation and data.targetRelation so edge endpoint cardinality can be rendered."
+        ]
+    source_relation = normalize(data.get("sourceRelation"))
+    target_relation = normalize(data.get("targetRelation"))
+    if source_relation != "1" or target_relation != "1":
+        return [
+            f"edges[{index}] data.sourceRelation and data.targetRelation must both be '1'; model one-to-many as multiple independent 1:1 edges."
+        ]
+    return []
+
+
 def validate_edge_visual_rules(
-    nodes: dict[str, dict[str, Any]], edges: list[tuple[str, str, int, dict[str, Any]]]
+    nodes: dict[str, dict[str, Any]],
+    edges: list[tuple[str, str, int, dict[str, Any]]],
+    registered_types: set[str],
 ) -> list[str]:
     errors: list[str] = []
     for source, target, index, edge in edges:
         edge_type = normalize(edge.get("type"))
         if edge_type is None:
             errors.append(f"edges[{index}] must provide React Flow edge type.")
-        elif edge_type not in BUILT_IN_EDGE_TYPES:
+        elif edge_type not in BUILT_IN_EDGE_TYPES and edge_type not in registered_types:
             errors.append(
-                f"edges[{index}] type must be one of {sorted(BUILT_IN_EDGE_TYPES)}; found '{edge_type}'."
+                f"edges[{index}] type must be one of {sorted(BUILT_IN_EDGE_TYPES)} or a value listed in _meta.registeredEdgeTypes; found '{edge_type}'."
             )
 
         source_kind = node_kind(nodes.get(source))
@@ -425,6 +469,7 @@ def validate_request_confirmation_chain(
     nodes: dict[str, dict[str, Any]], edges: list[tuple[str, str, int]]
 ) -> list[str]:
     errors: list[str] = []
+    confirmation_predecessors: dict[str, list[str]] = defaultdict(list)
     for node_id, node in nodes.items():
         if node_kind(node) != ("Evidence", "Fulfillment Request"):
             continue
@@ -446,6 +491,14 @@ def validate_request_confirmation_chain(
         if len(confirmations) != 1:
             errors.append(
                 f"Fulfillment Request '{node_id}' must have exactly one Fulfillment Confirmation successor; found {len(confirmations)}."
+            )
+        else:
+            confirmation_predecessors[confirmations[0]].append(node_id)
+
+    for confirmation_id, request_ids in confirmation_predecessors.items():
+        if len(request_ids) > 1:
+            errors.append(
+                f"Fulfillment Confirmation '{confirmation_id}' must be the direct 1:1 successor of exactly one Fulfillment Request; found predecessors: {', '.join(request_ids)}."
             )
 
     for source, target, index in edges:

@@ -18,7 +18,7 @@ Model requirements with Fulfillment Modeling (FM): start from contracts and busi
 5. Add Other Evidence for internal business documents produced by confirmations. If the evidence bridges contexts, model it as Evidence As Role instead and do not keep duplicate Other Evidence for the same semantic.
 6. Add Domain, Third Party, Context, or Evidence roles only when they represent real business participation. Name Domain Logic and Third Party roles as human job/position semantics from the pre-software world, not as technical systems.
 7. Put business-chain nodes inside their Context. Keep Participant Party outside Context containers.
-8. Create edges from cause to result or initiator to action so the model reads left-to-right as business flow.
+8. Create edges from cause to result or initiator to action so the model reads left-to-right as business flow. Each React Flow edge is a single 1:1 source-to-target relation; model aggregate one-to-many relationships as multiple independent 1:1 edges. Put endpoint relationship display text in `edge.data.sourceRelation` and `edge.data.targetRelation`, both set to `"1"`.
 9. Run `scripts/self_check_fm_graph.py` on the generated graph JSON before returning any machine-readable model.
 
 ## Output Guidance
@@ -33,7 +33,8 @@ For a new model, default to a complete graph:
   "nodes": [],
   "edges": [],
   "_meta": {
-    "validationNotes": []
+    "validationNotes": [],
+    "registeredEdgeTypes": []
   }
 }
 ```
@@ -52,12 +53,13 @@ For an update to a large existing model, return only the changes when that is mo
     "deleteEdges": []
   },
   "_meta": {
-    "validationNotes": []
+    "validationNotes": [],
+    "registeredEdgeTypes": []
   }
 }
 ```
 
-Use the complete `nodes`/`edges` model to express "what the domain model is". Keep validation and diagnostic notes under `_meta.validationNotes`, not as top-level graph fields. Node ids must be unique across `nodes`; node `data.name` values must be non-empty and unique across `nodes`; edge ids must be unique across `edges`. In `changes`, ids must not be duplicated across add/update/delete arrays for the same graph element type. Use `changes` only as an editing/transport optimization for existing models. Do not introduce project-specific persistence payload fields, enum spellings, operation names, or validation scripts unless another skill or the user provides that target schema.
+Use the complete `nodes`/`edges` model to express "what the domain model is". Keep validation and diagnostic notes under `_meta.validationNotes`, not as top-level graph fields. Node ids must be unique across `nodes`; node `data.name` values must be non-empty and unique across `nodes`; edge ids must be unique across `edges`. Each edge must use scalar string `source` and `target` node ids plus `data.sourceRelation: "1"` and `data.targetRelation: "1"` so a React Flow custom edge can render relation text near both endpoints. Default to built-in `type: "smoothstep"`; use a custom edge `type` only when the target React Flow app has registered it, and list that value in `_meta.registeredEdgeTypes`. In `changes`, ids must not be duplicated across add/update/delete arrays for the same graph element type. Use `changes` only as an editing/transport optimization for existing models. Do not introduce project-specific persistence payload fields, enum spellings, operation names, or validation scripts unless another skill or the user provides that target schema.
 
 ## Executable Self-Check
 
@@ -67,7 +69,7 @@ After drafting graph JSON, save it to a temporary file and run:
 python3 .agents/skills/fulfillment-modeling/scripts/self_check_fm_graph.py /tmp/fm-graph.json
 ```
 
-Fix every reported error before returning the graph. The script checks React Flow-shaped node/edge structure, supported React Flow edge `type` values and FM line styling, node `type` equals `data.category`, duplicate ids, duplicate node `data.name` values, endpoint existence, parent Context references, Party Role participation, Request -> Confirmation pairing, Proposal/Request routing, cross-context bridge constraints, Evidence As Role constraints, and Third Party/Context Role participation constraints.
+Fix every reported error before returning the graph. The script checks React Flow-shaped node/edge structure, supported built-in React Flow edge `type` values or custom types declared in `_meta.registeredEdgeTypes`, per-edge endpoint relation data, FM line styling, node `type` equals `data.category`, duplicate ids, duplicate node `data.name` values, endpoint existence, parent Context references, Party Role participation, Request -> Confirmation pairing, Proposal/Request routing, cross-context bridge constraints, Evidence As Role constraints, and Third Party/Context Role participation constraints.
 
 Manually review semantic duplication after the script passes:
 
