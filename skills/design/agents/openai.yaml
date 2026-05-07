@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design"
+  short_description: "Create distinctive production UI"
+  default_prompt: "Use the design skill to build or improve this interface."

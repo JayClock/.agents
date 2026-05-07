@@ -1,0 +1,4 @@
+interface:
+  display_name: "Learn"
+  short_description: "Research domains into useful drafts"
+  default_prompt: "Use the learn skill to research this topic and turn sources into structured output."

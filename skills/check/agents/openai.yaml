@@ -1,0 +1,4 @@
+interface:
+  display_name: "Check"
+  short_description: "Review diffs and ship changes"
+  default_prompt: "Use the check skill to review the current changes before shipping."

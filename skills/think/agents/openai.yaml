@@ -1,0 +1,4 @@
+interface:
+  display_name: "Think"
+  short_description: "Plan decisions before coding"
+  default_prompt: "Use the think skill to turn this idea into an approved implementation plan."

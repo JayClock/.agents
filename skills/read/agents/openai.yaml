@@ -1,0 +1,4 @@
+interface:
+  display_name: "Read"
+  short_description: "Fetch URLs and PDFs as Markdown"
+  default_prompt: "Use the read skill to fetch this URL or PDF as clean Markdown."

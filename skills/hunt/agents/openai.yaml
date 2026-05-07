@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hunt"
+  short_description: "Diagnose root causes before fixing"
+  default_prompt: "Use the hunt skill to diagnose the root cause of this bug before fixing it."

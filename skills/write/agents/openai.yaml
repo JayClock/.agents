@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write"
+  short_description: "Rewrite prose to sound natural"
+  default_prompt: "Use the write skill to rewrite or polish this prose naturally."
