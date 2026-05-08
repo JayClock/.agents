@@ -284,7 +284,7 @@ Diff id rules:
 
 Complete example for a medium-sized model:
 
-This example shows one Contract branching to multiple independent Fulfillment Request nodes. Each edge is still a single 1:1 React Flow edge.
+This example shows multiple bounded contexts, one Contract branching to independent Fulfillment Request nodes, a reverse refund flow, same-context Other Evidence, and Evidence As Role cross-context bridges. Each edge is still a single 1:1 React Flow edge.
 
 ```json
 {
@@ -746,6 +746,58 @@ This example shows one Contract branching to multiple independent Fulfillment Re
           }
         ]
       }
+    },
+    {
+      "id": "node-19",
+      "type": "Role",
+      "position": { "x": 0, "y": 0 },
+      "parentId": "node-context-2",
+      "extent": "parent",
+      "data": {
+        "label": "移动支付机构",
+        "name": "MobilePaymentInstitutionRole",
+        "category": "Role",
+        "kind": "Third Party Role"
+      }
+    },
+    {
+      "id": "node-20",
+      "type": "Evidence",
+      "position": { "x": 0, "y": 0 },
+      "parentId": "node-context-2",
+      "extent": "parent",
+      "data": {
+        "label": "支付渠道回单",
+        "name": "PaymentChannelReceipt",
+        "category": "Evidence",
+        "kind": "Other Evidence",
+        "attributes": [
+          {
+            "name": "createdAt",
+            "label": "创建时间",
+            "valueType": "DateTime",
+            "required": true,
+            "meaning": "支付成功确认后生成渠道回单的业务时间",
+            "calculationRule": "createdAt = PaymentSuccessConfirmation.confirmedAt"
+          },
+          {
+            "name": "receiptAmount",
+            "label": "回单金额",
+            "valueType": "Money",
+            "required": true,
+            "meaning": "支付渠道回单记录的实付金额",
+            "calculationRule": "receiptAmount = PaymentSuccessConfirmation.paidAmount"
+          },
+          {
+            "name": "paymentChannelTxnId",
+            "label": "渠道流水号",
+            "valueType": "String",
+            "required": true,
+            "meaning": "支付机构回单中的渠道交易流水号",
+            "calculationRule": "paymentChannelTxnId = PaymentSuccessConfirmation.paymentChannelTxnId"
+          }
+        ]
+      }
     }
   ],
   "edges": [
@@ -968,12 +1020,101 @@ This example shows one Contract branching to multiple independent Fulfillment Re
       "type": "smoothstep",
       "label": "收款方确认退款出款",
       "data": { "sourceRelation": "1", "targetRelation": "1" }
+    },
+    {
+      "id": "edge-27",
+      "source": "node-15",
+      "target": "node-20",
+      "type": "smoothstep",
+      "label": "支付成功确认生成渠道回单",
+      "data": { "sourceRelation": "1", "targetRelation": "1" }
+    },
+    {
+      "id": "edge-28",
+      "source": "node-12",
+      "target": "node-20",
+      "type": "smoothstep",
+      "label": "收款方接收渠道回单",
+      "data": { "sourceRelation": "1", "targetRelation": "1" }
+    },
+    {
+      "id": "edge-29",
+      "source": "node-19",
+      "target": "node-20",
+      "type": "smoothstep",
+      "label": "支付机构提供渠道回单",
+      "data": { "sourceRelation": "1", "targetRelation": "1" }
     }
   ],
   "_meta": {
     "validationNotes": [
-      "示例同时展示了主合同上下文、支付上下文、退款异常流，以及通过 Evidence As Role 进行的跨上下文确认桥接。",
+      "示例同时展示了主合同上下文、支付上下文、退款异常流、同上下文 Other Evidence，以及通过 Evidence As Role 进行的跨上下文确认桥接。",
+      "PaymentChannelReceipt 是支付上下文内部的衍生凭证，所以建模为 Other Evidence；支付成功触发订阅上下文开通时，才使用 Evidence As Role。",
       "建模时仍应根据具体需求补充属性来源说明，例如 columnPrice 来自 Proposal 或商品定价规则，PaymentRequest.expiredAt 来自 startedAt 加15分钟算法计算。"
+    ],
+    "registeredEdgeTypes": []
+  }
+}
+```
+
+Example update response for the same model:
+
+```json
+{
+  "summary": "将支付申请有效期从15分钟调整为30分钟，并同步说明支付渠道回单的接收角色。",
+  "changes": {
+    "addNodes": [],
+    "updateNodes": [
+      {
+        "id": "node-14",
+        "data": {
+          "attributes": [
+            {
+              "name": "startedAt",
+              "label": "开始时间",
+              "valueType": "DateTime",
+              "required": true,
+              "meaning": "用户发起移动支付的业务时间"
+            },
+            {
+              "name": "expiredAt",
+              "label": "失效时间",
+              "valueType": "DateTime",
+              "required": true,
+              "meaning": "支付申请的业务失效时间",
+              "calculationRule": "expiredAt = startedAt + duration(\"PT30M\")"
+            },
+            {
+              "name": "amount",
+              "label": "支付金额",
+              "valueType": "Money",
+              "required": true,
+              "meaning": "本次支付申请金额",
+              "calculationRule": "amount = PaymentContract.payableAmount"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-20",
+        "data": {
+          "notes": "渠道回单留在支付上下文内部，用于对账和审计，不作为跨上下文触发凭证。"
+        }
+      }
+    ],
+    "deleteNodes": [],
+    "addEdges": [],
+    "updateEdges": [
+      {
+        "id": "edge-28",
+        "label": "收款方接收并归档渠道回单"
+      }
+    ],
+    "deleteEdges": []
+  },
+  "_meta": {
+    "validationNotes": [
+      "该 diff 使用已有 node/edge id 更新节点和边；返回前应先应用到 base graph 并对 merged full graph 运行 self_check_fm_graph.py。"
     ],
     "registeredEdgeTypes": []
   }
