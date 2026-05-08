@@ -29,7 +29,21 @@ Use these rules when a task needs precise Fulfillment Modeling generation or val
    - Different contract contexts may only bridge through Fulfillment Confirmation -> Evidence As Role -> Fulfillment Confirmation.
    - Do not connect Contract directly to Contract or to another context's Request/Confirmation.
 15. Boundary and flow: after roles and participants are clear, place Party and Thing into the appropriate domain boundaries. Edges should express evidence flow, role participation, and context collaboration while keeping business control flow separate from domain calculation logic.
-16. Seven-layer coverage: when the task references ontology-driven seven-layer modeling, apply it as a completeness check after the FM chain is coherent. Preserve FM node kinds and edge constraints; do not add generic M1-M7 nodes unless explicitly requested. See `seven-layer-fm-integration.md`.
+16. Seven-layer coverage: when the task references ontology-driven seven-layer modeling, apply it as a completeness check after the FM chain is coherent. Preserve FM node kinds and edge constraints; do not add generic M1-M7 nodes unless explicitly requested.
+
+## Seven-Layer Coverage Lens
+
+Use seven-layer ontology only as a coverage check after the FM graph is coherent. Treat FM as the source of truth for fulfillment semantics; the seven-layer lens must not loosen FM edge constraints or replace FM node kinds.
+
+- M1 Object Model: Contract, Evidence, Thing, and evidence attributes hold stable business facts, lifecycle time, amount, quantity, status, KPI, and acceptance facts.
+- M2 Behavior Model: Fulfillment Request -> Fulfillment Confirmation pairs hold concrete responsibilities, actions, decisions, and lifecycle transitions.
+- M3 Rule Model: Domain Role plus `calculationRule` and `precondition` hold calculation, validation, derivation, eligibility, risk, and acceptance rules.
+- M4 Scenario Model: evidence flow, context chain, exception chain, and cross-context bridge hold main, alternative, cancellation, refund, suspension, reversal, and compensation scenarios.
+- M5 Subject Model: Party, Party Role, Third Party Role, and Context Role hold identity-in-context and participation.
+- M6 Exception Compensation Model: reverse or breach request/confirmation pairs hold exception and compensation handling until the external dispute or litigation boundary.
+- M7 Quality Constraint Model: evidence attributes, deadlines, KPI/acceptance metrics, notes, and `_meta.validationNotes` hold SLA, audit, consistency, idempotency, and reliability constraints when present or clearly implied.
+
+Do not create generic M1-M7 nodes unless the user explicitly asks for a seven-layer artifact. In normal FM output, encode missing coverage through existing FM nodes, attributes, notes, edge labels, and validation notes.
 
 ## Entity Categories
 

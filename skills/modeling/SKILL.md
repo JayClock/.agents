@@ -87,8 +87,6 @@ Manually review semantic duplication after the script passes:
 
 ## Reference
 
-Read `references/fm-modeling-rules.md` when generating or reviewing a complete FM model, especially for the FM entity type dictionary, mandatory Evidence timestamps, multi-contract contexts, Evidence As Role, role participation constraints, React Flow-shaped graph output, patch output, or boundary rules.
-
-Read `references/seven-layer-fm-integration.md` when mapping object, behavior, rule, scenario, subject, exception, and quality modeling concepts into FM, or when checking whether an FM graph covers those seven dimensions.
+Read `references/fm-modeling-rules.md` when generating or reviewing a complete FM model, especially for the FM entity type dictionary, seven-layer coverage lens, mandatory Evidence timestamps, multi-contract contexts, Evidence As Role, role participation constraints, React Flow-shaped graph output, patch output, or boundary rules.
 
 Use `$fm-database-design` instead when the user asks to turn an FM graph into database tables, physical schema, SQL DDL, immutable evidence persistence, or M1 object-model storage design.
