@@ -1,0 +1,56 @@
+{
+  "bundles": {
+    "research-publishing": {
+      "description": "Research, source capture, prose refinement, styled HTML publishing, image compression, and visual briefs.",
+      "skills": [
+        "learn",
+        "read",
+        "youtube",
+        "write",
+        "markdown-html",
+        "image-tools",
+        "design"
+      ]
+    },
+    "content-capture": {
+      "description": "Fetch webpages, PDFs, Chinese-platform pages, X/Twitter links, and YouTube transcripts or covers.",
+      "skills": [
+        "read",
+        "youtube"
+      ]
+    },
+    "wechat-publishing": {
+      "description": "Polish Markdown, convert it to WeChat-ready HTML, and compress publish images.",
+      "skills": [
+        "write",
+        "markdown-html",
+        "image-tools"
+      ]
+    },
+    "engineering": {
+      "description": "Plan, debug, review, and model implementation work.",
+      "skills": [
+        "think",
+        "hunt",
+        "check",
+        "modeling"
+      ]
+    },
+    "all": {
+      "description": "Install every skill in this repository.",
+      "skills": [
+        "think",
+        "learn",
+        "read",
+        "hunt",
+        "check",
+        "modeling",
+        "write",
+        "design",
+        "youtube",
+        "markdown-html",
+        "image-tools"
+      ]
+    }
+  }
+}

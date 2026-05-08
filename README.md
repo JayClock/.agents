@@ -19,13 +19,45 @@ Clone this repository as an `.agents` directory:
 git clone https://github.com/JayClock/.agents.git ~/.agents
 ```
 
-Or copy one skill into an existing agents directory:
+Or install a bundle into an existing agents directory:
 
 ```bash
-cp -R skills/read ~/.agents/skills/
+scripts/install-bundle.sh research-publishing ~/.agents/skills
 ```
 
+To update an existing installed bundle, pass `--force`:
+
+```bash
+scripts/install-bundle.sh research-publishing ~/.agents/skills --force
+```
+
+List available bundles:
+
+```bash
+scripts/install-bundle.sh --list
+```
+
+Single-skill installs are still supported when the skill is fully standalone:
+
+```bash
+cp -R skills/think ~/.agents/skills/
+```
+
+Prefer bundles for workflows that span multiple skills. For example, `learn` depends on `read`, `youtube`, `write`, `markdown-html`, `image-tools`, and `design` for its full research-to-publish workflow.
+
 After adding or updating skills, restart the agent session if your runtime does not hot-reload local skill definitions.
+
+## Bundles
+
+| Bundle | Skills | Use When |
+|--------|--------|----------|
+| `research-publishing` | `learn`, `read`, `youtube`, `write`, `markdown-html`, `image-tools`, `design` | Turning multiple sources into notes, articles, canonical references, WeChat HTML, publish packages, or visual briefs. |
+| `content-capture` | `read`, `youtube` | Fetching webpages, PDFs, Chinese-platform pages, X/Twitter links, and YouTube transcripts or covers. |
+| `wechat-publishing` | `write`, `markdown-html`, `image-tools` | Formatting Markdown, producing styled HTML, and compressing publish images. |
+| `engineering` | `think`, `hunt`, `check`, `modeling` | Planning, debugging, review, release checks, and Fulfillment Modeling. |
+| `all` | Every skill in this repository | Setting up the complete skill set. |
+
+The source of truth is `bundles.json`; keep this table in sync when changing bundle membership.
 
 ## Available Skills
 
