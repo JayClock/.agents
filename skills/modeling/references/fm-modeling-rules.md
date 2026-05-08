@@ -38,6 +38,42 @@ Use these rules when a task needs precise Fulfillment Modeling generation or val
 - Role: Party Role, Domain Role, Third Party Role, Context Role, Evidence As Role.
 - Context: bounded business context containers such as payment, inventory, invoice, delivery, subscription, service, or support.
 
+## Entity Type Dictionary
+
+Use this dictionary to choose node kinds and avoid semantic drift. Treat Evidence as time-bearing business facts, Participant as static placeholders, Role as responsibility or calculation participants, and Context as bounded business containers.
+
+### Evidence
+
+Evidence nodes represent business actions, commitments, or result artifacts that actually happened at a business time point. They form the dynamic business control flow and must carry lifecycle timestamps:
+
+- Contract: the main modeling starting point. It represents the physical moment when buyer and seller form a transaction agreement and defines rights and obligations. Require `signedAt`.
+- RFP: presales evidence for an initial customer intention, inquiry, or requirements request. Require `startedAt` and `expiredAt`.
+- Proposal: presales evidence for the concrete offer, solution, or quotation commitment responding to an RFP, usually with a validity window. Require `startedAt` and `expiredAt`.
+- Fulfillment Request: the initiating instruction for a forward or reverse action derived from a Contract, such as payment, shipment, refund, or cancellation. It starts an execution responsibility. Require `startedAt` and business deadline `expiredAt`.
+- Fulfillment Confirmation: the paired delivery result for a Fulfillment Request, whether success or failure. Require `confirmedAt`.
+- Other Evidence: static business documents or byproducts produced after confirmation and kept inside the same business context, such as revenue recognition records, electronic invoices, or warehouse receipt documents. Require `createdAt`.
+
+### Participant
+
+Participant nodes represent objectively existing physical entities or business objects. In FM graphs they are static domain skeleton placeholders, not expanded field models. Connect them to Contract or presales Evidence through roles or direct business association when the identity or object matters.
+
+- Party: a real transaction participant, such as a specific customer company, supplier, or natural person. Add it only when the model must distinguish physical identity from business role.
+- Thing: the concrete object around which the transaction or fulfillment action occurs, such as goods, paid content, or virtual assets. Use it to answer what the contract sells or fulfills.
+
+### Role
+
+Role nodes answer who initiates, calculates, executes, receives, or bridges Evidence. Connect them to Evidence with participation/support semantics; do not model actions as roles.
+
+- Party Role: the identity, responsibility, and authority of a participant inside the current context, such as buyer, seller, or purchaser. Every Evidence node that requires participation must have exactly one Party Role participant.
+- Domain Role: a black-box business calculator, verifier, or rule performer, such as a price assessor or discount approver. Name it as a real-world job or position, not as a software system.
+- Third Party Role: an external system or institution outside internal control, such as a payment institution or tax invoice platform. It may connect only to Other Evidence or Evidence As Role, never directly into the core internal fulfillment flow.
+- Context Role: another internal business domain acting as a downstream agent, such as warehouse context or points context. Use only for cross-context collaboration.
+- Evidence As Role: a special bridge where a source-context Evidence becomes a role-like trigger for another context. Enforce the exact bridge pattern `Fulfillment Confirmation -> Evidence As Role -> downstream Fulfillment Confirmation`.
+
+### Context
+
+- Bounded Context: a macroscopic business boundary container, such as payment, inventory, fulfillment, subscription, or invoicing. Each Context must contain a complete independent chain from Contract to terminal Evidence. Contexts are decoupled and may cooperate only through asynchronous Evidence As Role bridges.
+
 ## Graph Output
 
 For a new model, return the complete model as React Flow-shaped nodes plus edges:
