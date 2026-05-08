@@ -20,7 +20,7 @@ Model requirements with Fulfillment Modeling (FM): start from contracts and busi
 7. Put business-chain nodes inside their Context. Keep Participant Party outside Context containers.
 8. Create edges from cause to result or initiator to action so the model reads left-to-right as business flow. Each React Flow edge is a single 1:1 source-to-target relation; model aggregate one-to-many relationships as multiple independent 1:1 edges. Put endpoint relationship display text in `edge.data.sourceRelation` and `edge.data.targetRelation`, both set to `"1"`.
 9. When the user asks about seven-layer ontology-driven modeling, use it as a coverage lens over the FM graph; keep FM's Contract/Evidence/Request/Confirmation semantics as the source of truth.
-10. Run `scripts/self_check_fm_graph.py` on the generated graph JSON before returning any machine-readable model.
+10. For existing-model updates, return a `changes` diff by default, but validate it by applying it locally to the provided base model with `scripts/apply_fm_changes.py` and running `scripts/self_check_fm_graph.py` on the merged full graph before returning. If the user explicitly asks for the complete model, return that validated merged graph instead of the diff.
 
 ## Output Guidance
 
@@ -40,7 +40,7 @@ For a new model, default to a complete graph:
 }
 ```
 
-For an update to a large existing model, return only the changes when that is more efficient:
+For an update to an existing model, default to a diff-only `changes` response, after locally validating the merged full graph:
 
 ```json
 {
@@ -60,9 +60,18 @@ For an update to a large existing model, return only the changes when that is mo
 }
 ```
 
-Use the complete `nodes`/`edges` model to express "what the domain model is". Keep validation and diagnostic notes under `_meta.validationNotes`, not as top-level graph fields. Node ids must be unique across `nodes`; node `data.name` values must be non-empty and unique across `nodes`; edge ids must be unique across `edges`. Each edge must use scalar string `source` and `target` node ids plus `data.sourceRelation: "1"` and `data.targetRelation: "1"` so a React Flow custom edge can render relation text near both endpoints. Default to built-in `type: "smoothstep"`; use a custom edge `type` only when the target React Flow app has registered it, and list that value in `_meta.registeredEdgeTypes`. In `changes`, ids must not be duplicated across add/update/delete arrays for the same graph element type. Use `changes` only as an editing/transport optimization for existing models. Do not introduce project-specific persistence payload fields, enum spellings, operation names, or validation scripts unless another skill or the user provides that target schema.
+Return the complete `nodes`/`edges` model for new models, or when the user explicitly asks for the final/full/complete model after an update. For every update response, compute the diff first, apply it to the base model locally, and validate the merged graph. If validation passes, return the diff by default or the merged full graph when requested. Keep validation and diagnostic notes under `_meta.validationNotes`, not as top-level graph fields. Node ids must be unique across `nodes`; node `data.name` values must be non-empty and unique across `nodes`; edge ids must be unique across `edges`. Each edge must use scalar string `source` and `target` node ids plus `data.sourceRelation: "1"` and `data.targetRelation: "1"` so a React Flow custom edge can render relation text near both endpoints. Default to built-in `type: "smoothstep"`; use a custom edge `type` only when the target React Flow app has registered it, and list that value in `_meta.registeredEdgeTypes`. In `changes`, ids must not be duplicated across add/update/delete arrays for the same graph element type. Do not introduce project-specific persistence payload fields, enum spellings, operation names, or validation scripts unless another skill or the user provides that target schema.
+
+Diff id rules: `updateNodes` and `deleteNodes` must reference existing `node.id` values from the provided base model; `updateEdges` and `deleteEdges` must reference existing `edge.id` values. `addNodes` and `addEdges` must use new ids that do not exist in the base model. `addEdges.source` and `addEdges.target` may reference existing nodes or nodes added in the same diff. When deleting a node, also include every incident edge in `deleteEdges`; never leave dangling edges for the merge step to infer.
 
 ## Executable Self-Check
+
+For any update diff, merge and validate the full graph before returning either diff or complete output:
+
+```bash
+python3 .agents/skills/modeling/scripts/apply_fm_changes.py /tmp/base-fm-graph.json /tmp/fm-changes.json /tmp/merged-fm-graph.json
+python3 .agents/skills/modeling/scripts/self_check_fm_graph.py /tmp/merged-fm-graph.json
+```
 
 After drafting graph JSON, save it to a temporary file and run:
 

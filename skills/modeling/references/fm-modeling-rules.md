@@ -240,7 +240,7 @@ React Flow separates edge path shape from visual styling. Its built-in edge `typ
 
 Do not use custom edge `type` values such as `relationship`, `role-play`, or `cross-context-association` unless the target React Flow app has registered matching `edgeTypes`. When portability matters, keep the built-in path `type` and express visual differences with `markerEnd`, `style`, and `data.sourceRelation` / `data.targetRelation`. If a custom edge type is used, declare it in `_meta.registeredEdgeTypes`.
 
-For an update to a large existing model, return only changes when full output would be wasteful:
+For an update to an existing model, return only changes by default after locally validating the merged full graph:
 
 ```json
 {
@@ -258,6 +258,15 @@ For an update to a large existing model, return only changes when full output wo
   }
 }
 ```
+
+Diff id rules:
+
+- `updateNodes` and `deleteNodes` must reference existing `node.id` values from the provided base model. Do not generate a new id when changing an existing node's label, attributes, parent, or position.
+- `updateEdges` and `deleteEdges` must reference existing `edge.id` values from the provided base model.
+- `addNodes` and `addEdges` must use new ids that do not exist in the base model.
+- `addEdges.source` and `addEdges.target` may reference existing node ids or node ids introduced in the same `addNodes` array.
+- When deleting a node, explicitly include every edge connected to that node in `deleteEdges`; do not rely on the frontend or merge script to infer cascading edge deletion.
+- Never repeat the same id across add/update/delete arrays for the same graph element type.
 
 Complete example for a medium-sized model:
 
@@ -957,7 +966,7 @@ This example shows one Contract branching to multiple independent Fulfillment Re
 }
 ```
 
-Use `changes` as an editing or transport optimization only. It must still preserve the conceptual model as nodes and edges. Within `changes`, do not repeat the same node id across `addNodes`, `updateNodes`, or `deleteNodes`, and do not repeat the same edge id across `addEdges`, `updateEdges`, or `deleteEdges`. Prefer full `nodes` and `edges` for new models, small models, or when the caller has not provided existing ids.
+Use `changes` as the default update transport, but validate updates against the merged full graph before returning success. Generate the diff, apply it locally to the provided base graph, run the full graph self-check, and only then return the diff. Within `changes`, update/delete arrays must target existing ids, add arrays must introduce new ids, and the same id must not repeat across add/update/delete arrays for the same graph element type. Return full `nodes` and `edges` for new models or when the caller has not provided existing ids. When the caller explicitly asks for the complete updated model, return the validated merged full graph instead of the diff.
 
 Use `_meta` for non-rendered diagnostics. Put validation notes, assumptions, and manual review reminders in `_meta.validationNotes`. Do not put `validationNotes` at the top level.
 
