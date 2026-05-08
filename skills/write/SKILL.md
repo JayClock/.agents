@@ -38,6 +38,44 @@ Activate when: mixed Chinese/English, "Chinese copywriting", "bilingual consiste
 
 **Bilingual pairs**: Confirm EN and CN versions convey the same meaning; mark translation loss.
 
+## Translation Mode
+
+Activate when: "translate", "翻译", "精翻", "localize", "本地化", "改成中文", "改成英文", "translate article", or a URL/file/text is provided with translation intent.
+
+Choose the mode from the user's request:
+
+| Mode | Use Case | Workflow |
+|------|----------|----------|
+| `quick` | Short text, informal content | Translate directly, preserve meaning, avoid commentary |
+| `normal` | Articles, blog posts, documents | Analyze audience and terminology, then translate |
+| `refined` | Publication-quality output | Analyze, translate, review, then polish |
+
+Defaults:
+- Target language: `zh-CN` unless the user specifies another target.
+- Audience: general readers unless the text clearly targets technical, academic, business, or social media readers.
+- Style: natural storytelling for public articles; technical for docs; formal for business or academic materials.
+
+Terminology:
+- Preserve product names, API names, code identifiers, and quoted UI labels unless the text itself translates them.
+- If the user provides a glossary, follow it over local preference.
+- For cultural, legal, or domain-specific references that would confuse the target reader, add a short translator's note only when needed.
+
+After `normal` mode, if the user says "继续润色", "refine", or "精修", continue with review and polish instead of restarting translation.
+
+## Markdown Formatting Mode
+
+Activate when: "format markdown", "beautify article", "整理 Markdown", "排版", "加 frontmatter", "补摘要", or another skill needs a Markdown file cleaned before publishing.
+
+Workflow:
+1. Read the source file and preserve its meaning.
+2. Check YAML frontmatter. Keep existing `title`, `slug`, `summary`, and `coverImage` when they are valid.
+3. If missing, infer `title` from H1 or filename, infer `slug` from title or path, generate a concise `summary`, and detect `imgs/cover.png` or `imgs/cover.jpg` next to the file.
+4. Normalize heading hierarchy, lists, blockquotes, code fences, inline code, and emphasis.
+5. For Chinese or bilingual documents, apply Chinese/English spacing and punctuation consistency from Bilingual Review Mode.
+6. Save to `{filename}-formatted.md` unless the user explicitly asks to overwrite.
+
+Do not invent facts, reorder sections, or change the author's stance while formatting.
+
 ## Release Note Template Mode
 
 Activate when: "release", "changelog", "version", "release notes"

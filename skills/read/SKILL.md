@@ -13,6 +13,7 @@ Convert any URL or local PDF to clean Markdown. No analysis, no summary, no disc
 |-------|--------|
 | `feishu.cn`, `larksuite.com` | Feishu API script |
 | `mp.weixin.qq.com` | Proxy cascade first, built-in WeChat article script only if the proxies fail |
+| YouTube URLs (`youtube.com`, `youtu.be`) where the user wants transcript, captions, subtitles, chapters, speaker labels, metadata, or cover image | Use the `youtube` skill |
 | `.pdf` URL or local PDF path | PDF extraction |
 | GitHub URLs (`github.com`, `raw.githubusercontent.com`) | Prefer raw content or `gh` first. Use the proxy cascade only as fallback. |
 | `x.com`, `twitter.com` | Proxy cascade (r.jina.ai keeps image URLs). Do not try WebFetch; it 402s. |
@@ -72,6 +73,7 @@ When asked, after saving the Markdown:
 | User said "read this" but meant "summarize and act on it" | Deliver the Markdown first, then ask what to do next. Do not save unless asked. |
 | URL returned empty page or paywall with no content | Report the failure clearly: what was tried, what failed. Do not fabricate or guess the content. |
 | r.jina.ai or defuddle.md returned empty for a JS-heavy site | Try the local fallback (`agent-fetch` or `defuddle parse`) before giving up. |
+| YouTube page Markdown is requested but the intent is really transcript/subtitles/cover | Switch to `youtube`; do not scrape the watch page. |
 | Network failures | Prepend local proxy env vars if available and retry once. |
 | Long content | Preview with `head -n 200` first; mention truncation when reporting the save. |
 | Local fallback tools returned JSON | Extract the Markdown-bearing field. Raw JSON is not a valid final output for `/read`. |
