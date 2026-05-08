@@ -1,6 +1,6 @@
 ---
 name: modeling
-description: General Fulfillment Modeling guidance for analyzing business/software requirements into contract-centered graph models shaped like React Flow nodes/edges. Use when Codex needs to output complete nodes/edges, update an existing model with changes, identify Contract contexts, Party Roles, presales evidence, Fulfillment Request/Fulfillment Confirmation pairs, Other Evidence, Evidence As Role, multi-contract boundaries, valid FM edge constraints, or map ontology-driven seven-layer modeling concepts into FM without binding to a specific project persistence schema.
+description: General Fulfillment Modeling guidance for analyzing business/software requirements into contract-centered graph models shaped like React Flow nodes/edges. Use when Codex needs to output complete nodes/edges, update an existing model with changes, identify Contract contexts, Party Roles, presales evidence, Fulfillment Request/Fulfillment Confirmation pairs, Other Evidence, Evidence As Role, multi-contract boundaries, valid FM edge constraints, or map ontology-driven seven-layer modeling concepts into FM without binding to a physical database schema. For database table design from FM graphs, use the fm-database-design skill instead.
 ---
 
 # Fulfillment Modeling
@@ -81,3 +81,5 @@ Manually review semantic duplication after the script passes:
 Read `references/fm-modeling-rules.md` when generating or reviewing a complete FM model, especially for the FM entity type dictionary, mandatory Evidence timestamps, multi-contract contexts, Evidence As Role, role participation constraints, React Flow-shaped graph output, patch output, or boundary rules.
 
 Read `references/seven-layer-fm-integration.md` when mapping object, behavior, rule, scenario, subject, exception, and quality modeling concepts into FM, or when checking whether an FM graph covers those seven dimensions.
+
+Use `$fm-database-design` instead when the user asks to turn an FM graph into database tables, physical schema, SQL DDL, immutable evidence persistence, or M1 object-model storage design.
