@@ -1,6 +1,6 @@
 ---
 name: write
-description: "Rewrite, polish, proofread, or review prose so it sounds natural in Chinese or English, including drafts, documents, bilingual copy, release notes, social posts, tweets, and paragraph-coherence checks. Use only for explicit writing or editing requests such as 润色, 去AI味, 改稿, 审稿, draft, edit text, proofread, polish, or rewrite. Not for code comments, commit messages, or inline docs."
+description: "Rewrite, polish, proofread, or review prose so it sounds natural in Chinese or English, including drafts, documents, bilingual copy, release notes, changelogs, PR descriptions, issue comments, commit messages, merge summaries, social posts, tweets, and paragraph-coherence checks. Use only for explicit writing or editing requests such as 润色, 去AI味, 改稿, 审稿, draft, edit text, proofread, polish, rewrite, 写 PR 描述, 写 changelog, or 改 commit message. Not for code review, git operations, or inline code docs."
 ---
 
 # Write: Cut the AI Taste
@@ -75,6 +75,40 @@ Workflow:
 6. Save to `{filename}-formatted.md` unless the user explicitly asks to overwrite.
 
 Do not invent facts, reorder sections, or change the author's stance while formatting.
+
+## Release Summary Mode
+
+Activate when the user gives raw git history, a technical changelog, release metadata, or asks for a user-facing release summary.
+
+Write for users and operators, not commit authors. Group commits into product-level outcomes instead of mirroring commit order.
+
+Rules:
+
+- Keep the summary concise. Prefer one short overview paragraph plus 3-6 highlights.
+- Include upgrade notes only when the input implies breaking changes, migrations, packaging changes, signing/notarization changes, install changes, or manual action.
+- Do not claim tests passed, assets uploaded, crates/packages published, notarization completed, or an issue was fixed unless the input directly says so.
+- Do not invent issue links, documentation links, release URLs, or compatibility promises.
+- Mention "No breaking changes identified from the provided commits." only when no breaking or upgrade signal exists.
+- Preserve evidence from the provided commit range. If the input is incomplete, say what is missing instead of filling gaps.
+
+## Git Prose Mode
+
+Activate when the user asks to draft, rewrite, or polish Git-related human-facing text:
+
+- Commit messages.
+- PR or merge request titles and descriptions.
+- Issue comments or maintainer replies.
+- Merge summaries.
+- Changelog entries.
+- Release announcement copy.
+
+Boundary:
+
+- Do not inspect code correctness, approve a PR, decide merge readiness, create commits, tag releases, push branches, close issues, or run `git`/`gh` operations in this mode.
+- If facts are missing, ask for the diff summary, commit list, issue link, or verified release state. Do not invent them.
+- If the user asks whether the change is safe, complete, mergeable, or releasable, route to `/check`.
+
+Output should be ready to paste. Match the target surface: commit messages are terse and imperative; PR descriptions explain problem, solution, verification, and risks; maintainer replies are short, factual, and tied to a release or verification next step.
 
 ## Release Note Template Mode
 

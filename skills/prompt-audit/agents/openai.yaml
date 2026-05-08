@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prompt Audit"
+  short_description: "Audit agent prompts and skills"
+  default_prompt: "Use $prompt-audit to review this agent prompt for routing, safety, retry, and verification gaps."

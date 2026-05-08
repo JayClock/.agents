@@ -54,7 +54,7 @@ After adding or updating skills, restart the agent session if your runtime does 
 | `research-publishing` | `learn`, `read`, `youtube`, `write`, `markdown-html`, `image-tools`, `design` | Turning multiple sources into notes, articles, canonical references, WeChat HTML, publish packages, or visual briefs. |
 | `content-capture` | `read`, `youtube` | Fetching webpages, PDFs, Chinese-platform pages, X/Twitter links, and YouTube transcripts or covers. |
 | `wechat-publishing` | `write`, `markdown-html`, `image-tools` | Formatting Markdown, producing styled HTML, and compressing publish images. |
-| `engineering` | `think`, `hunt`, `check`, `modeling` | Planning, debugging, review, release checks, and Fulfillment Modeling. |
+| `engineering` | `think`, `hunt`, `check`, `modeling`, `prompt-audit` | Planning, debugging, review, release checks, prompt audits, and Fulfillment Modeling. |
 | `all` | Every skill in this repository | Setting up the complete skill set. |
 
 The source of truth is `bundles.json`; keep this table in sync when changing bundle membership.
@@ -77,6 +77,7 @@ Skills are organized by the kind of work they own.
 |-------|--------|
 | `hunt` | Diagnoses root causes for errors, regressions, broken behavior, crashes, and failing tests before applying fixes. |
 | `check` | Reviews diffs, extracts repository constraints, verifies changes, and handles ship/release follow-through. |
+| `prompt-audit` | Audits AGENTS.md, CLAUDE.md, SKILL.md, and role prompts for routing, safety, retry, and verification gaps. |
 | `fulfillment-modeling` | Models business/software requirements into contract-centered Fulfillment Modeling graphs shaped like React Flow nodes and edges. |
 
 ### Writing and Design
@@ -150,6 +151,7 @@ skills/
 ├── learn/
 ├── markdown-html/
 ├── modeling/
+├── prompt-audit/
 ├── read/
 ├── think/
 ├── write/

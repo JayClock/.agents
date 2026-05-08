@@ -43,6 +43,16 @@ For the context shape, see `references/project-context.md`.
 
 Get the full diff between the current branch and the base branch. If unclear, ask. If already on the base branch, ask which commits to review.
 
+## Diff Summary Mode
+
+Activate when the user asks to view, explain, or summarize the current git changes without asking for a full review.
+
+1. Run `git status --short` first.
+2. Inspect the relevant `git diff` and staged diff if present.
+3. Summarize only observed changes, grouped by behavior or artifact.
+4. Flag surprising files, generated drift, missing validation, or release risks.
+5. Do not modify files in this mode.
+
 ## Triage Mode
 
 Activate when the user mentions: issue, PR, "review all", triage, "batch", or "批量处理". Skip the diff flow and run this instead.
@@ -138,6 +148,17 @@ Examples, not exhaustive -- flag any diff that could cause irreversible harm if 
 Load `references/persona-catalog.md` to determine which specialists activate. Launch all activated specialists in parallel via the environment's agent or sub-agent facility when available, passing the full diff. If no parallel reviewer facility exists, run the specialist passes sequentially in the same session.
 
 Merge findings: when two specialists flag the same code location, keep the higher severity and note cross-reviewer agreement. Findings on different code locations are never duplicates even if they share a theme.
+
+## Multi-phase PR Review
+
+For PR-sized diffs, avoid jumping straight to findings.
+
+1. **Context pass**: identify stack, linter-covered issues, test commands, public contracts, generated outputs, and project-specific review rules.
+2. **Raw finding pass**: review only PR-introduced changes. For each candidate, record `file:line`, category, severity, confidence, concrete failure path, and smallest fix.
+3. **False-positive filter**: remove findings already enforced by lint/typecheck, test-only concerns that cannot affect production, theoretical issues without a path, and framework-handled cases.
+4. **Merge-readiness verdict**: `APPROVE`, `REQUEST_CHANGES`, or `COMMENT`. Request changes only for findings that are both material and well-evidenced.
+
+When the diff touches security-sensitive code, load `references/security-scoped-review.md` and apply the scoped source-to-sink checks before finalizing findings.
 
 ## Autofix Routing
 

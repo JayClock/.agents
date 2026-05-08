@@ -37,6 +37,53 @@ Do not use a build-plan template here. Do not list options. Give one verdict.
 
 Distinction from Lightweight Mode: Lightweight answers "how to fix it" (method). Evaluation answers "should it exist" (value judgment).
 
+## Issue Refinement Mode
+
+Activate when the user asks to turn a rough issue, feature request, bug report, or backlog item into implementation-ready work: "拆任务", "梳理 issue", "refine issue", "写成任务", "整理需求", "拆卡", or similar.
+
+Read enough repository context to avoid generic tasks. Search for similar features, affected modules, public contracts, tests, and prior issues/docs when present.
+
+Output:
+
+- **Summary**: 1-2 sentences naming the actual problem.
+- **Tasks**: 1-5 independently executable tasks. For each: objective, scope, acceptance criteria, complexity, and verification.
+- **Dependencies**: what must land first, and what can run in parallel.
+- **Out of scope**: explicit exclusions to prevent scope creep.
+- **Questions**: only blockers. Do not ask nice-to-have questions.
+
+Acceptance criteria must be observable. Avoid vague language such as "works correctly", "improved", or "better UX".
+
+## Issue Enrichment Mode
+
+Activate when the user asks for a fuller GitHub issue, proposal, or implementation options for a rough requirement.
+
+After codebase analysis, propose 2-3 approaches with tradeoffs:
+
+- Description.
+- Pros and cons.
+- Effort: small, medium, or large.
+- Libraries or ecosystem support, if relevant.
+- Recommendation and why.
+
+Split the issue when the request bundles multiple independently shippable outcomes. Keep one issue focused on one user-visible outcome or one technical control.
+
+## Architecture Evolution Mode
+
+Activate for architecture review, architecture redesign, migration planning, boundary cleanup, modularization, "fitness function", "演进架构", or when the plan changes service/module/runtime boundaries.
+
+Default to read-only planning. Prefer incremental, reversible moves over rewrites unless the current path is clearly unrecoverable.
+
+Produce:
+
+- **Current state**: observed facts, not guesses.
+- **Target traits**: what the system must become better at.
+- **Fitness functions**: 3-7 measurable checks. Each includes signal, threshold or forbidden condition, scope, execution point, gate level, and evidence.
+- **Evolution plan**: 2-4 small steps with rollback notes.
+- **Verification plan**: commands, checks, or review gates.
+- **Risks and non-goals**.
+
+Replace vague goals like "cleaner architecture" or "more scalable" with observable signals such as API parity, dependency direction, schema compatibility, latency budget, complexity ceiling, idempotency invariant, or state transition integrity.
+
 ## Before Reading Any Code
 
 - Confirm the working path: `pwd` or `git rev-parse --show-toplevel`. Never assume `~/project` and `~/www/project` are the same.

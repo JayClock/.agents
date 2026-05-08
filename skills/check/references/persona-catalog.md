@@ -21,8 +21,12 @@ Activate when the diff touches:
 - Shell or subprocess execution
 - Third-party credential or API key handling
 - SQL queries or raw database access
+- Outbound fetch/proxy/client URL construction, base URL overrides, redirects, or network egress controls
+- Markdown, HTML, rich text, or agent-generated content rendering paths
 
 **Do not activate** for: pure UI changes, config file updates, test-only changes, documentation.
+
+When activated for authentication, command execution, filesystem paths, SSRF, network egress, or rendering, also read `references/security-scoped-review.md`. Require a concrete source-to-sink path before reporting a vulnerability.
 
 ### Architecture Reviewer
 
