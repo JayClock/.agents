@@ -37,13 +37,23 @@ Use seven-layer ontology only as a coverage check after the FM graph is coherent
 
 - M1 Object Model: Contract, Evidence, Thing, and evidence attributes hold stable business facts, lifecycle time, amount, quantity, status, KPI, and acceptance facts.
 - M2 Behavior Model: Fulfillment Request -> Fulfillment Confirmation pairs hold concrete responsibilities, actions, decisions, and lifecycle transitions.
-- M3 Rule Model: Domain Role plus `calculationRule` and `precondition` hold calculation, validation, derivation, eligibility, risk, and acceptance rules.
+- M3 Rule Model: Domain Role plus `calculationRule` and `precondition` hold calculation, validation, derivation, eligibility, risk, and acceptance rules. When an ontology or rule artifact is requested, SWRL-like formal rules may express inference semantics for this layer.
 - M4 Scenario Model: evidence flow, context chain, exception chain, and cross-context bridge hold main, alternative, cancellation, refund, suspension, reversal, and compensation scenarios.
 - M5 Subject Model: Party, Party Role, Third Party Role, and Context Role hold identity-in-context and participation.
 - M6 Exception Compensation Model: reverse or breach request/confirmation pairs hold exception and compensation handling until the external dispute or litigation boundary.
-- M7 Quality Constraint Model: evidence attributes, deadlines, KPI/acceptance metrics, notes, and `_meta.validationNotes` hold SLA, audit, consistency, idempotency, and reliability constraints when present or clearly implied.
+- M7 Quality Constraint Model: evidence attributes, deadlines, KPI/acceptance metrics, notes, and `_meta.validationNotes` hold SLA, audit, consistency, idempotency, and reliability constraints when present or clearly implied. When a validation artifact is requested, SHACL-like shapes may express machine-checkable data constraints for this layer.
 
 Do not create generic M1-M7 nodes unless the user explicitly asks for a seven-layer artifact. In normal FM output, encode missing coverage through existing FM nodes, attributes, notes, edge labels, and validation notes.
+
+## Formal Rule and Constraint Expressions
+
+Formal languages such as SWRL and SHACL are machine-checkable ways to express rules or constraints with strict syntax and explicit semantics. Use them only when the task asks for an ontology, rule set, validation shape, semantic-web artifact, or similarly formal deliverable. Normal FM output should still use the React Flow model, node attributes, `calculationRule`, `precondition`, notes, and `_meta.validationNotes`.
+
+- SWRL-style rules are for inference: if known facts satisfy a condition, derive a new fact. In FM, use this meaning for M3 Rule Model semantics such as eligibility, derivation, classification, breach detection, or acceptance decisions. Example intent: if a payment confirmation exists and shipment confirmation is absent, infer that an order is cancelable.
+- SHACL-style shapes are for validation: check whether graph data conforms to required structure, cardinality, datatype, value range, or consistency constraints. In FM, use this meaning for M7 Quality Constraint Model semantics such as required lifecycle timestamps, one participating Party Role, deadline format, maximum/minimum cardinality, or KPI threshold conformance.
+- Do not replace FM nodes or edges with SWRL/SHACL text. Formal rules are companion artifacts or explanatory constraints, not the primary FM graph.
+- Keep `calculationRule` and `precondition` parseable even when their business meaning could also be written as SWRL or SHACL. Prefer expression-style rules inside node attributes unless the requested output explicitly requires SWRL/SHACL syntax.
+- If formal artifacts are included, keep them traceable to FM elements by referencing `data.name`, attribute names, or edge semantics. Avoid generic ontology classes that cannot be mapped back to the generated FM graph.
 
 ## Entity Categories
 
@@ -181,18 +191,56 @@ Recommended node fields:
 
 ### Attribute Calculation Rules
 
-Use parseable expression-style rules for derived attributes. Do not write natural-language fragments such as `is absent`, `when ...`, `before shipment`, or `after payment` inside `calculationRule`.
+Use parseable expression-style rules for derived attributes. Treat these fields as a small DSL contract for parser implementation, not as free text.
 
-- `calculationRule` must be an assignment expression in the form `<targetAttribute> = <expression>`.
-- Refer to prior evidence attributes with explicit paths, such as `PaymentConfirmation.paidAmount` or `ShipmentConfirmation.confirmedAt`.
-- Use local attribute names only when deriving from attributes on the same evidence, such as `expiredAt = startedAt + duration("PT30M")`.
-- Use standard boolean operators and comparison operators: `&&`, `||`, `!`, `==`, `!=`, `<`, `<=`, `>`, `>=`.
-- Use explicit null checks: `isNull(ShipmentConfirmation.confirmedAt)` and `notNull(PaymentConfirmation.confirmedAt)`.
+- `calculationRule` must be exactly one assignment expression in the form `<targetAttribute> = <expression>`.
+- The left side of `calculationRule` must be the current attribute `name`. Do not assign to another attribute, multiple attributes, a node path, or a nested field.
+- `precondition` must be exactly one boolean expression. It must not include an assignment operator.
+- Use ASCII identifiers only: `[A-Za-z_][A-Za-z0-9_]*`. Prefer PascalCase for node `data.name` values and camelCase for attribute `name` values.
+- Refer to prior evidence attributes with explicit `NodeName.attributeName` paths, such as `PaymentConfirmation.paidAmount` or `ShipmentConfirmation.confirmedAt`.
+- Use local `attributeName` references only for attributes on the same evidence, such as `expiredAt = startedAt + duration("PT30M")`.
+- Do not use labels, spaces, Chinese punctuation, natural-language phrases, or display names inside expressions.
+- Supported literals are numbers, double-quoted strings, booleans `true` / `false`, and `null`. Do not use single-quoted strings.
+- Supported arithmetic operators are `+`, `-`, `*`, `/`, and `%`.
+- Supported comparison operators are `==`, `!=`, `<`, `<=`, `>`, and `>=`.
+- Supported boolean operators are `&&`, `||`, and unary `!`.
+- Parentheses may be used for grouping and should be used whenever precedence could be unclear.
+- Supported function calls are limited to `isNull(value)`, `notNull(value)`, `if(condition, whenTrue, whenFalse)`, `duration(iso8601Duration)`, `min(a, b)`, `max(a, b)`, `round(value, digits)`, `floor(value)`, `ceil(value)`, and `abs(value)`.
+- Use explicit null checks such as `isNull(ShipmentConfirmation.confirmedAt)` and `notNull(PaymentConfirmation.confirmedAt)`. Do not write `x == null` unless a direct null equality check is required for a simple data comparison.
 - Use conditional expressions when a value must fall back to another value: `cancelledQuantity = if(OrderCancellationRequest.cancelable == true, OrderSalesContract.quantity, 0)`.
 - Prefer a separate `precondition` field when the attribute only exists or is only valid under a business condition. In that case, keep `calculationRule` focused on the value calculation.
-- `precondition` should also use parseable boolean expressions, such as `OrderCancellationRequest.cancelable == true`.
-- Time offsets should use explicit duration notation, such as `expiredAt = startedAt + duration("PT30M")`, `expiredAt = startedAt + duration("PT48H")`, or `expiredAt = startedAt + duration("P7D")`.
+- Time offsets must use explicit ISO 8601 duration notation through `duration(...)`, such as `expiredAt = startedAt + duration("PT30M")`, `expiredAt = startedAt + duration("PT48H")`, or `expiredAt = startedAt + duration("P7D")`.
 - Avoid mixing explanation and calculation. Put business explanation in `meaning` or `notes`, and put only the executable or machine-checkable rule in `calculationRule` and `precondition`.
+- Do not use natural-language fragments such as `is absent`, `when ...`, `before shipment`, `after payment`, `within 7 days`, or `if paid then ...` inside `calculationRule` or `precondition`.
+
+Recommended parser precedence, from highest to lowest:
+
+1. Function calls and parenthesized expressions.
+2. Unary `!` and unary `-`.
+3. `*`, `/`, `%`.
+4. `+`, `-`.
+5. `<`, `<=`, `>`, `>=`.
+6. `==`, `!=`.
+7. `&&`.
+8. `||`.
+
+Minimal grammar shape:
+
+```text
+calculationRule := identifier "=" expression
+precondition    := booleanExpression
+path            := identifier | identifier "." identifier
+functionCall    := identifier "(" arguments? ")"
+arguments       := expression ("," expression)*
+```
+
+Type rules:
+
+- `precondition` must evaluate to `Boolean`.
+- The right side of `calculationRule` must be compatible with the current attribute `valueType`.
+- Comparison operands should have compatible types; string, number, boolean, datetime, and money values should not be compared across incompatible domains.
+- `duration(...)` may only be added to or subtracted from DateTime-like values.
+- `if(condition, whenTrue, whenFalse)` requires a Boolean `condition`; `whenTrue` and `whenFalse` should resolve to compatible result types.
 
 Prefer machine-checkable expressions for these derived attribute scenarios:
 
