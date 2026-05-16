@@ -29,31 +29,119 @@ Use these rules when a task needs precise Fulfillment Modeling generation or val
    - Different contract contexts may only bridge through Fulfillment Confirmation -> Evidence As Role -> Fulfillment Confirmation.
    - Do not connect Contract directly to Contract or to another context's Request/Confirmation.
 15. Boundary and flow: after roles and participants are clear, place Party and Thing into the appropriate domain boundaries. Edges should express evidence flow, role participation, and context collaboration while keeping business control flow separate from domain calculation logic.
-16. Seven-layer coverage: when the task references ontology-driven seven-layer modeling, apply it as a completeness check after the FM chain is coherent. Preserve FM node kinds and edge constraints; do not add generic M1-M7 nodes unless explicitly requested.
+16. Completeness check: after the evidence chain is coherent, verify that business objects, responsibilities, rules, lifecycle facts, downstream signals, and scenario paths are all represented through existing FM nodes, attributes, notes, edge labels, and validation notes. Do not introduce extra framework-specific layer nodes.
 
-## Seven-Layer Coverage Lens
+## Business Semantics Completeness
 
-Use seven-layer ontology only as a coverage check after the FM graph is coherent. Treat FM as the source of truth for fulfillment semantics; the seven-layer lens must not loosen FM edge constraints or replace FM node kinds.
+Keep FM focused on business semantics rather than technical implementation:
 
-- M1 Object Model: Contract, Evidence, Thing, and evidence attributes hold stable business facts, lifecycle time, amount, quantity, status, KPI, and acceptance facts.
-- M2 Behavior Model: Fulfillment Request -> Fulfillment Confirmation pairs hold concrete responsibilities, actions, decisions, and lifecycle transitions.
-- M3 Rule Model: Domain Role plus `calculationRule` and `precondition` hold calculation, validation, derivation, eligibility, risk, and acceptance rules. When an ontology or rule artifact is requested, SWRL-like formal rules may express inference semantics for this layer.
-- M4 Scenario Model: evidence flow, context chain, exception chain, and cross-context bridge hold main, alternative, cancellation, refund, suspension, reversal, and compensation scenarios.
-- M5 Subject Model: Party, Party Role, Third Party Role, and Context Role hold identity-in-context and participation.
-- M6 Exception Compensation Model: reverse or breach request/confirmation pairs hold exception and compensation handling until the external dispute or litigation boundary.
-- M7 Quality Constraint Model: evidence attributes, deadlines, KPI/acceptance metrics, notes, and `_meta.validationNotes` hold SLA, audit, consistency, idempotency, and reliability constraints when present or clearly implied. When a validation artifact is requested, SHACL-like shapes may express machine-checkable data constraints for this layer.
+- Include business contracts, obligations, roles, evidence, business objects, lifecycle facts, rules, downstream signals, and scenario paths.
+- Exclude database tables, API endpoints, service modules, framework classes, deployment components, queues, jobs, and integration mechanisms unless the user explicitly asks for implementation design.
+- Name Domain Role and Third Party Role with real-world business job, institution, or responsibility semantics instead of system names.
 
-Do not create generic M1-M7 nodes unless the user explicitly asks for a seven-layer artifact. In normal FM output, encode missing coverage through existing FM nodes, attributes, notes, edge labels, and validation notes.
+Place each business semantic in the existing FM model this way:
 
-## Formal Rule and Constraint Expressions
+- Business objects and stable facts belong in Contract, Thing, Evidence, Evidence attributes, Context, Party, or Party Role.
+- Business responsibilities belong in Fulfillment Request -> Fulfillment Confirmation pairs. A request is the business instruction or attempted transition; a confirmation is the business result that proves the responsibility was fulfilled or rejected.
+- Business rules belong in `precondition`, `calculationRule`, Domain Role, evidence attributes, and `_meta.validationNotes`.
+- Downstream business signals belong in Confirmation-driven evidence flow. Same-context signal effects become downstream requests, confirmations, or Other Evidence. Cross-context signal effects must use the allowed Fulfillment Confirmation -> Evidence As Role -> downstream Fulfillment Confirmation bridge.
+- Business relationships belong in FM edges, participation edges, role-play edges, context containment, and allowed cross-context bridges. Each edge remains a single 1:1 React Flow edge.
+- Business scenarios belong in coherent evidence chains that cover main flow, alternative flow, exception flow, cancellation, refund, suspension, reversal, compensation, and terminal business outcomes.
 
-Formal languages such as SWRL and SHACL are machine-checkable ways to express rules or constraints with strict syntax and explicit semantics. Use them only when the task asks for an ontology, rule set, validation shape, semantic-web artifact, or similarly formal deliverable. Normal FM output should still use the React Flow model, node attributes, `calculationRule`, `precondition`, notes, and `_meta.validationNotes`.
+When a source requirement describes an atomic business behavior with fields such as actor, owner entity, trigger, preconditions, applied rules, postconditions, or produced events, translate it into FM like this:
 
-- SWRL-style rules are for inference: if known facts satisfy a condition, derive a new fact. In FM, use this meaning for M3 Rule Model semantics such as eligibility, derivation, classification, breach detection, or acceptance decisions. Example intent: if a payment confirmation exists and shipment confirmation is absent, infer that an order is cancelable.
-- SHACL-style shapes are for validation: check whether graph data conforms to required structure, cardinality, datatype, value range, or consistency constraints. In FM, use this meaning for M7 Quality Constraint Model semantics such as required lifecycle timestamps, one participating Party Role, deadline format, maximum/minimum cardinality, or KPI threshold conformance.
-- Do not replace FM nodes or edges with SWRL/SHACL text. Formal rules are companion artifacts or explanatory constraints, not the primary FM graph.
-- Keep `calculationRule` and `precondition` parseable even when their business meaning could also be written as SWRL or SHACL. Prefer expression-style rules inside node attributes unless the requested output explicitly requires SWRL/SHACL syntax.
-- If formal artifacts are included, keep them traceable to FM elements by referencing `data.name`, attribute names, or edge semantics. Avoid generic ontology classes that cannot be mapped back to the generated FM graph.
+- Actor becomes a Party Role or other allowed Role participating in the relevant Evidence.
+- Owner entity becomes the Contract, Thing, or Evidence whose attributes carry the business fact being changed.
+- Trigger becomes the incoming edge into the Fulfillment Request, or the source Confirmation/Evidence that makes the request meaningful.
+- Preconditions become request attributes with `precondition`, eligibility attributes with `calculationRule`, or validation notes when the source rule is not machine-checkable.
+- Applied rules become parseable `calculationRule` values where possible, Domain Role responsibility where a business actor performs a decision, or validation notes where the source rule is not machine-checkable.
+- Postconditions become Fulfillment Confirmation attributes and downstream Evidence.
+- Produced business signals become downstream evidence flow or Evidence As Role bridges, not a generic event node by default.
+
+Classify rules by intent before placing them:
+
+- Validation rules check whether an operation is allowed. Prefer `precondition` on the request or validation notes.
+- Calculation rules derive amounts, quantities, deadlines, eligibility, status, risk, scores, or flags. Prefer attribute-level `calculationRule`.
+- Decision rules choose between business paths or outcomes. Prefer Domain Role plus decision Evidence attributes, or a confirmation attribute with a parseable decision result.
+- Derivation rules infer a new business fact from existing evidence. Prefer derived Evidence attributes.
+- Constraint rules express quality, SLA, audit, consistency, idempotency, or cardinality requirements. Prefer evidence attributes or validation notes.
+
+Use this completeness check before finalizing:
+
+- Every important business object has a home in Contract, Thing, Evidence, or attributes.
+- Every meaningful behavior is represented by a Request -> Confirmation pair.
+- Every non-trivial rule is traceable to a precondition, calculation rule, Domain Role, or validation note.
+- Every significant downstream business signal is represented as evidence flow or an Evidence As Role bridge.
+- Every scenario path has a readable evidence chain from contract or presales evidence through terminal evidence.
+
+## Lifecycle Modeling in FM
+
+FM does not model lifecycle as standalone status nodes. Express lifecycle by proving each meaningful state change through business evidence.
+
+Use this mapping:
+
+- State: an Evidence, Thing, or Contract attribute such as `supplierStatus`, `fulfillmentStatus`, `inspectionStatus`, `riskStatus`, or `terminated`.
+- Initial state: the Contract, presales evidence, admission request, creation request, or first Fulfillment Confirmation attribute that establishes the lifecycle.
+- State transition: a Fulfillment Request -> Fulfillment Confirmation pair.
+- Trigger behavior: the Fulfillment Request and its incoming cause edge.
+- Guard condition: request `precondition`, eligibility flag, or parseable `calculationRule`.
+- Transition result: Fulfillment Confirmation attributes such as `confirmedStatus`, `effectiveStatus`, `terminated`, `suspendedAt`, or `effectiveAt`.
+- Follow-up event: downstream Fulfillment Request/Confirmation, Other Evidence, or Evidence As Role bridge.
+- Terminal state: terminal Confirmation or terminal status attribute; do not create a terminal state node by default.
+
+For each lifecycle transition, capture the complete dynamic business semantics:
+
+- Who or what role initiates the transition.
+- Which prior evidence, contract, or object makes the transition possible.
+- Which guard condition or business rule must hold.
+- Which confirmation proves the transition occurred.
+- Which status, timestamp, amount, quantity, risk flag, or other business fact changed.
+- Which downstream actions or documents are triggered.
+
+Example lifecycle mapping:
+
+```text
+合格供应商 -> 暂停合作
+
+FM expression:
+SupplierSuspensionRequest
+  precondition: supplier is qualified and quality score or breach condition allows suspension
+  participant: ProcurementDirectorRole
+  -> SupplierSuspensionConfirmation
+     attributes:
+       confirmedAt
+       effectiveSupplierStatus = "SUSPENDED"
+       suspendedAt
+  -> downstream RFQCloseRequest / RFQCloseConfirmation
+  -> downstream InTransitOrderRiskMarkRequest / InTransitOrderRiskMarkConfirmation
+```
+
+Recommended attribute pattern:
+
+```json
+{
+  "name": "suspendable",
+  "label": "是否可暂停",
+  "valueType": "Boolean",
+  "required": true,
+  "meaning": "供应商是否满足暂停合作条件",
+  "calculationRule": "suspendable = SupplierQualityConfirmation.qualityScore < 60 || SupplierBreachConfirmation.majorDeliveryBreach == true"
+}
+```
+
+```json
+{
+  "name": "effectiveSupplierStatus",
+  "label": "生效后的供应商状态",
+  "valueType": "Enum",
+  "required": true,
+  "meaning": "供应商暂停确认完成后生效的生命周期状态",
+  "precondition": "SupplierSuspensionRequest.suspendable == true",
+  "calculationRule": "effectiveSupplierStatus = \"SUSPENDED\""
+}
+```
+
+If the user asks for a lifecycle state diagram, generate it as a derived view from the FM evidence chain. The source of truth remains the FM graph: states are derived from attributes, and transitions are derived from Request -> Confirmation pairs.
 
 ## Entity Categories
 

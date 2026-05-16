@@ -1,6 +1,6 @@
 ---
 name: modeling
-description: General Fulfillment Modeling guidance for analyzing business/software requirements into contract-centered graph models shaped like React Flow nodes/edges. Use when Codex needs to output complete nodes/edges, update an existing model with changes, identify Contract contexts, Party Roles, presales evidence, Fulfillment Request/Fulfillment Confirmation pairs, Other Evidence, Evidence As Role, multi-contract boundaries, valid FM edge constraints, or map ontology-driven seven-layer modeling concepts into FM without binding to a physical database schema. For database table design from FM graphs, use the fm-database-design skill instead.
+description: General Fulfillment Modeling guidance for analyzing business/software requirements into contract-centered graph models shaped like React Flow nodes/edges. Use when Codex needs to output complete nodes/edges, update an existing model with changes, identify Contract contexts, Party Roles, presales evidence, Fulfillment Request/Fulfillment Confirmation pairs, Other Evidence, Evidence As Role, multi-contract boundaries, valid FM edge constraints, business rules, lifecycle facts, downstream signals, or scenario paths without binding to a physical database schema. For database table design from FM graphs, use the fm-database-design skill instead.
 ---
 
 # Fulfillment Modeling
@@ -8,6 +8,8 @@ description: General Fulfillment Modeling guidance for analyzing business/softwa
 ## Purpose
 
 Model requirements with Fulfillment Modeling (FM): start from contracts and business fulfillment responsibilities, then derive contexts, roles, evidences, requests, confirmations, and valid business-flow edges. Prefer business semantics over technical components.
+
+FM is a pure business-semantic model. Keep database tables, APIs, services, modules, deployment, frameworks, and other technical implementation details outside the model unless the user explicitly asks for a separate implementation artifact. Business objects, responsibilities, rules, lifecycle facts, downstream signals, and scenario paths must be expressed through FM's existing Contract/Evidence/Request/Confirmation/Role/Context node kinds and edge constraints.
 
 ## Workflow
 
@@ -19,8 +21,9 @@ Model requirements with Fulfillment Modeling (FM): start from contracts and busi
 6. Add Domain, Third Party, Context, or Evidence roles only when they represent real business participation. Name Domain Logic and Third Party roles as human job/position semantics from the pre-software world, not as technical systems.
 7. Put business-chain nodes inside their Context. Keep Participant Party outside Context containers.
 8. Create edges from cause to result or initiator to action so the model reads left-to-right as business flow. Each React Flow edge is a single 1:1 source-to-target relation; model aggregate one-to-many relationships as multiple independent 1:1 edges. Put endpoint relationship display text in `edge.data.sourceRelation` and `edge.data.targetRelation`, both set to `"1"`.
-9. When the user asks about seven-layer ontology-driven modeling, use it as a coverage lens over the FM graph; keep FM's Contract/Evidence/Request/Confirmation semantics as the source of truth.
-10. For existing-model updates, return a `changes` diff by default, but validate it by applying it locally to the provided base model with `scripts/apply_fm_changes.py` and running `scripts/self_check_fm_graph.py` on the merged full graph before returning. If the user explicitly asks for the complete model, return that validated merged graph instead of the diff.
+9. Express lifecycle through evidence, not standalone status nodes. Put lifecycle facts such as current status, effective status, terminal status, lifecycle timestamps, and eligibility flags in Evidence, Thing, or Contract attributes. Model every meaningful state transition as a Fulfillment Request -> Fulfillment Confirmation pair, with guard conditions in `precondition` or `calculationRule`, transition results in Confirmation attributes, and follow-up effects as downstream evidence flow or Evidence As Role bridges.
+10. Before finalizing, check that each important business object has a home in Contract, Thing, Evidence, or attributes; each meaningful responsibility is a Request -> Confirmation pair; each non-trivial rule is traceable to `precondition`, `calculationRule`, Domain Role, or validation notes; each downstream business signal is represented as evidence flow or an Evidence As Role bridge; and each main, alternative, or exception scenario has a readable evidence chain.
+11. For existing-model updates, return a `changes` diff by default, but validate it by applying it locally to the provided base model with `scripts/apply_fm_changes.py` and running `scripts/self_check_fm_graph.py` on the merged full graph before returning. If the user explicitly asks for the complete model, return that validated merged graph instead of the diff.
 
 ## Output Guidance
 
@@ -87,6 +90,6 @@ Manually review semantic duplication after the script passes:
 
 ## Reference
 
-Read `references/fm-modeling-rules.md` when generating or reviewing a complete FM model, especially for the FM entity type dictionary, seven-layer coverage lens, mandatory Evidence timestamps, multi-contract contexts, Evidence As Role, role participation constraints, React Flow-shaped graph output, patch output, or boundary rules.
+Read `references/fm-modeling-rules.md` when generating or reviewing a complete FM model, especially for the FM entity type dictionary, mandatory Evidence timestamps, multi-contract contexts, Evidence As Role, role participation constraints, React Flow-shaped graph output, patch output, lifecycle expression, business-rule placement, or boundary rules.
 
-Use `$fm-database-design` instead when the user asks to turn an FM graph into database tables, physical schema, SQL DDL, immutable evidence persistence, or M1 object-model storage design.
+Use `$fm-database-design` instead when the user asks to turn an FM graph into database tables, physical schema, SQL DDL, immutable evidence persistence, or storage design.
