@@ -1,0 +1,4 @@
+interface:
+  display_name: "FM Database Design"
+  short_description: "Map FM graphs to append-only tables"
+  default_prompt: "Use $fm-database-design to turn this FM graph into append-only database tables."

@@ -1,0 +1,23 @@
+{
+  "skill_name": "tqa-acceptance-criteria-writer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我给这个用户故事写验收条件：作为学校教务人员，我希望学生可以根据录取通知注册学籍，从而我可以跟踪他们的学位进度。背景只知道这是一个 Web 学籍管理系统。你先问我需要澄清的问题，不要直接编一堆场景。",
+      "expected_output": "Uses TQA behavior by asking focused clarifying questions before final scenarios; questions should target journey, rules, deadline, boundaries, and actor/value.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "请审查这个 user story 并补验收条件：As a 注册用户, I want to 用用户名密码登录系统, so that 我可以登录系统。我们的业务目标是让管理员能够追踪不同用户的行为。",
+      "expected_output": "Diagnoses weak value statement, suggests role/value revision, asks or states scope assumptions, produces relevant Given/When/Then login criteria if enough context.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "我们在做电商售后。用户故事：作为买家，我希望能申请退货，从而在商品不满意时拿回退款。已知规则：签收后 7 天内可退，生鲜不可退，已发起过售后不能重复申请。请生成 BDD 验收场景。",
+      "expected_output": "Produces concrete Given/When/Then scenarios covering success, over 7 days, perishable goods, duplicate after-sales request, and scope notes if needed.",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "skill_name": "agent-harness-reverse-five-step",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I cloned an open-source coding-agent repository into /tmp/aider-like-agent. Please do not only read the README. Help me find where its main loop is, draw a runtime flow diagram with no more than 10 boxes, and list the 5 source files most worth reading next.",
+      "expected_output": "Uses Detect first, searches for session/messages/model/tool dispatch/state, produces a compact main-loop diagram, identifies key source files with evidence, and avoids README-only summary.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Please reverse engineer the Agent Harness in /tmp/openhands-style, focusing on which seven-vein categories sandbox, permission, and event log belong to. Put them into a matrix that explains topology, benefits, failure modes, and evidence.",
+      "expected_output": "Classifies components into Governance/Memory/Action etc., maps each to execution topology with tradeoffs and evidence, and marks unsupported claims as hypotheses.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I'm reading a multi-agent orchestration project, and grepping agent/tool/memory returns too many files. Please use the reverse-engineering five-step method to filter noise first: tell me what to read in the first pass, what not to read yet, and how to verify the next step.",
+      "expected_output": "Applies Filter criteria based on whether files affect decision/context/state/action/permission, groups retained files by cognitive veins, postpones boilerplate, and proposes concrete verification steps.",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "bundles": {
+    "user-story-modeling": {
+      "description": "End-to-end user story TQA, acceptance criteria, domain/Fulfillment Modeling, database design, and story-model validation workflow.",
+      "skills": [
+        "user-story-modeling-workflow",
+        "user-story-tqa-refinement",
+        "tqa-acceptance-criteria-writer",
+        "story-model-validation",
+        "modeling",
+        "fm-database-design"
+      ]
+    },
+    "agent-architecture": {
+      "description": "Select, review, and reverse engineer Agent architectures with the shared double-axis framework.",
+      "skills": [
+        "agent-selection-review",
+        "agent-harness-reverse-five-step"
+      ]
+    },
+    "all": {
+      "description": "Install every retained skill in this repository.",
+      "skills": [
+        "user-story-modeling-workflow",
+        "user-story-tqa-refinement",
+        "tqa-acceptance-criteria-writer",
+        "story-model-validation",
+        "modeling",
+        "fm-database-design",
+        "agent-selection-review",
+        "agent-harness-reverse-five-step"
+      ]
+    }
+  }
+}

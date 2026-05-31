@@ -1,0 +1,23 @@
+{
+  "skill_name": "agent-selection-review",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "We want to build a code review Agent. Inputs are GitHub PR diffs, related files, CI logs, and the team's coding standards. v1 only posts comments and does not automatically edit code; later it may automatically submit fix PRs. Please use Agent design patterns to choose the first-version architecture.",
+      "expected_output": "Should output an Agent selection card: seven-vein None/Light/Heavy scoring, primary topology decision, 3-7 v1 pattern coordinates, intentionally empty cells, minimum governance, and a v2 upgrade path.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "Please review this customer-support ticket Agent design: first an LLM classifies tickets as refund / technical / complaint, then hands them to three agents. Each agent can query the CRM, modify order status, and email the user. Finally a summarizer generates the handling record. The design currently has no human approval or trace because the team wants to run a demo first. Can this go live?",
+      "expected_output": "Should output an architecture review report: identify seven-vein state, especially Action/Governance risks; recognize Route and Parallel/Orchestrate error propagation; provide pre-launch blockers such as approval gates, permission boundaries, audit traces, and fail-fast controls.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We currently have a research-report Agent: RAG retrieves historical reports and web pages, an LLM writes a draft, then it self-checks facts for up to 5 loops. My boss thinks it is slow and wants to add 5 parallel expert agents for macro, finance, industry, risk, and compliance. Please help me decide whether we should upgrade from the current v1 to multi-agent, and how to design the upgrade roadmap.",
+      "expected_output": "Should compare Loop vs Parallel/Hierarchy tradeoffs, run a Compound Error check, identify merge/dedup/conflict-resolution and governance needs for parallel experts, and provide a phased upgrade roadmap with trigger conditions.",
+      "files": []
+    }
+  ]
+}
