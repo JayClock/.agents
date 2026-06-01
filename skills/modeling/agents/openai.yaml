@@ -1,4 +1,4 @@
 interface:
   display_name: "Fulfillment Modeling"
   short_description: "Model requirements with FM graphs"
-  default_prompt: "Use $modeling to analyze this requirement as a Fulfillment Modeling domain model."
+  default_prompt: "Use $modeling to analyze this requirement as a Fulfillment Modeling domain model, write YAML files under fm-model/, and run the model self-check."
