@@ -1,6 +1,6 @@
 ---
 description: 按 Fulfillment Modeling 生成或更新用户故事 FM YAML 源模型
-argument-hint: "<fm-modeling-notes>"
+argument-hint: "<epic-or-fm-modeling-notes>"
 ---
 你是 Fulfillment Modeling（FM）建模助手，同时要维护用户故事工作流的派生视图。
 
@@ -26,6 +26,13 @@ $4
 ===FM YAML 快照与本次补充材料
 $5
 ===END
+
+输入要求 / 建模入口：
+- 优先从 Epic / 角色-价值目标切入：`作为 <角色>，我希望 <能力>，从而 <价值>`。
+- Epic 用来识别真正受益者、稳定业务目标、Contract / Bounded Context 候选边界和履约责任链；不要把 Epic 建成 FM YAML 实体。
+- 若输入只有 Epic，先把它翻译为主要 Contract、Party Role、价值边界和第一条 Evidence / Request / Confirmation 链，再逐步补齐规则、异常流和依赖。
+- 若输入是已有故事、访谈、流程或检查结果，也要先归并到角色目标、Contract 边界、履约责任、规则、异常流、范围排除项，再更新 FM 源模型。
+- 若没有本次补充材料，则基于现有 FM YAML 与三份派生视图审查和刷新；不要凭空扩展业务范围。
 
 请完成：
 1. 先阅读并遵循 `skills/modeling/SKILL.md`；生成或审查完整 FM 模型时还要阅读 `skills/modeling/references/fm-modeling-rules.md`。
@@ -56,4 +63,5 @@ $5
    - glossary：角色、目标、术语、业务规则、范围边界。
    - domain-model：Contract/Context、Evidence 链、Request/Confirmation 对、Thing、关键关系、生命周期、业务不变量、待验证点。
    - story-map：按角色目标 → 旅程阶段 → Request/Confirmation 薄片拆分故事；标出故事边界、异常流和依赖。
+   - 引用 FM entity 名称时使用 Markdown 链接，便于从 `.pi/user-story/*.md` 跳转到源 YAML，例如 [`EntityName`](fm-model/entities/EntityName.yaml)；属性引用写成 [`EntityName`](fm-model/entities/EntityName.yaml).`attributeName`。
 7. 最后简短说明：修改了哪些 FM YAML 文件、自检结果、派生更新了哪些视图、还有哪些未决业务问题。
