@@ -18,7 +18,7 @@ interface ArtifactDetails {
 
 const ArtifactParams = Type.Object({
 	artifactType: StringEnum(ARTIFACT_TYPES, {
-		description: "Artifact type. Do not use context; this workflow does not maintain .pi/user-story/context.md.",
+		description: "Artifact type.",
 	}),
 	title: Type.String({ description: "Artifact title." }),
 	content: Type.String({ description: "Markdown content to save." }),
@@ -86,7 +86,7 @@ export default function storyArtifactsExtension(pi: ExtensionAPI) {
 			"Save business-analysis artifacts for the user-story workflow, such as glossary, domain model, story map, and model-check reports.",
 		promptSnippet: "Save user-story workflow artifacts as markdown under .pi/user-story/",
 		promptGuidelines: [
-			"Use user_story_artifact to save outputs from story-context, story-glossary, domain-model, story-map, and model-check workflows.",
+			"Use user_story_artifact to save outputs from fm-model and model-check workflows.",
 			"When using user_story_artifact, keep paths under .pi/user-story/ and prefer the default path unless the user requested another path.",
 		],
 		parameters: ArtifactParams,

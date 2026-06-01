@@ -9,7 +9,7 @@
 ## 本 extension 职责
 
 ```text
-已有业务知识（glossary / domain-model / story-map）/ 用户故事
+已有业务知识（FM YAML / glossary / domain-model / story-map）/ 用户故事
 → TQA 追问领域专家
 → 生成验收条件
 → 保存 .pi/user-story/sessions/*.story.md
@@ -34,4 +34,4 @@
 - 修改 `.pi/extensions/user-story/prompts/method.md` 调整方法论说明。
 - 修改 `.pi/extensions/user-story/prompts/tqa.md` 调整 Agent 工作流。
 - 修改 `.pi/extensions/user-story/templates/story-input.md` 调整手动输入模板。
-- 修改 `.pi/user-story/glossary.md`、`.pi/user-story/domain-model.md`、`.pi/user-story/story-map.md` 维护跨故事共享的业务知识。
+- 修改 `.pi/user-story/fm-model/`、`.pi/user-story/glossary.md`、`.pi/user-story/domain-model.md`、`.pi/user-story/story-map.md` 维护跨故事共享的业务知识。

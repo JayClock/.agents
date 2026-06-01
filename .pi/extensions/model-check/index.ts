@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
 	buildPrompt,
+	readFmModelSnapshot,
 	readLatestStorySession,
 	readProjectFile,
 	sendPrompt,
@@ -15,13 +16,14 @@ const FALLBACK_TEMPLATE = `$1\n\n概念字典：\n$2\n\n故事地图：\n$4\n\n�
 
 export default function modelCheckExtension(pi: ExtensionAPI) {
 	pi.registerCommand("model-check", {
-		description: "用用户故事验收条件展开领域模型并生成检查报告",
+		description: "用用户故事验收条件展开 FM/领域模型并生成检查报告",
 		handler: async (args, ctx: PromptCommandContext) => {
-			const [glossary, model, storyMap, latestStory] = await Promise.all([
+			const [glossary, model, storyMap, latestStory, fmModel] = await Promise.all([
 				readProjectFile(ctx.cwd, ".pi/user-story/glossary.md"),
 				readProjectFile(ctx.cwd, ".pi/user-story/domain-model.md"),
 				readProjectFile(ctx.cwd, ".pi/user-story/story-map.md"),
 				readLatestStorySession(ctx.cwd),
+				readFmModelSnapshot(ctx.cwd),
 			]);
 			let scenario = args?.trim() || latestStory;
 			if (ctx.hasUI) {
@@ -37,9 +39,15 @@ export default function modelCheckExtension(pi: ExtensionAPI) {
 				}
 				ctx.ui.setWidget("model-check", ["Model Check：展开验收场景检查模型，报告会保存到 .pi/user-story/model-checks/"]);
 			}
+			const modelContext = [
+				"# 领域模型派生视图",
+				model.trim() || "（暂无）",
+				"# FM YAML 源模型快照",
+				fmModel.trim() || "（暂无）",
+			].join("\n\n");
 			const prompt = await buildPrompt(join(baseDir, "prompts", "model-check.md"), FALLBACK_TEMPLATE, {
 				glossary: glossary.trim() || "（暂无）",
-				model: model.trim() || "（暂无）",
+				model: modelContext,
 				storyMap: storyMap.trim() || "（暂无）",
 				scenario: scenario.trim(),
 			});

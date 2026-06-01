@@ -20,6 +20,7 @@ import {
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
+import { readFmModelSnapshot } from "../_story-workflow/shared";
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
 
@@ -74,9 +75,9 @@ const FALLBACK_USER_STORY_METHOD = `
 - 角色-价值定义要解决的问题，通常更稳定；功能/能力是可协商的解决方案切入点。
 - 要追问真正受益者与真正价值；价值不应只是复述功能。
 - 好的价值陈述通常来自三类来源：满足某个用户角色的目标、满足整体解决方案的规则/流程、推进用户旅程的下一步。
-- 验收条件属于 Confirmation，应在掌握整体解决方案与用户旅程后，用 Given/When/Then 编写。
+- 验收条件属于 Confirmation，应在掌握整体解决方案、FM 履约责任链与用户旅程后，用 Given/When/Then 编写。
 - TQA（Thought-Question-Answer）模式：LLM 先思考不清楚之处，再向领域专家提问；人回答后继续；足够清楚时输出验收场景。
-- 对 LLM 问题的三类处理：若问题暴露基础概念/流程误解，修改 glossary/domain-model/story-map；若问题暴露操作误解，修改用户故事；若只是交互细节，直接记录为问答历史。
+- 对 LLM 问题的三类处理：若问题暴露基础概念/流程/FM 模型误解，修改 fm-model/glossary/domain-model/story-map；若问题暴露操作误解，修改用户故事；若只是交互细节，直接记录为问答历史。
 `.trim();
 
 const FALLBACK_STORY_INPUT_TEMPLATE = `请帮我用 TQA 编写用户故事验收条件。
@@ -189,12 +190,14 @@ async function readProjectFile(cwd: string, path: string): Promise<string> {
 }
 
 async function readKnowledgeContext(cwd: string): Promise<string> {
-	const [glossary, model, storyMap] = await Promise.all([
+	const [fmModel, glossary, model, storyMap] = await Promise.all([
+		readFmModelSnapshot(cwd),
 		readProjectFile(cwd, ".pi/user-story/glossary.md"),
 		readProjectFile(cwd, ".pi/user-story/domain-model.md"),
 		readProjectFile(cwd, ".pi/user-story/story-map.md"),
 	]);
 	return [
+		"# FM YAML 源模型\n\n" + (fmModel.trim() || "（暂无）"),
 		"# 概念字典\n\n" + (glossary.trim() || "（暂无）"),
 		"# 领域模型\n\n" + (model.trim() || "（暂无）"),
 		"# 故事地图\n\n" + (storyMap.trim() || "（暂无）"),

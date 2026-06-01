@@ -24,7 +24,7 @@ const FALLBACK_USER_STORY_METHOD = `
 - 标准卡片格式：作为 <角色>，我希望 <功能/能力>，从而 <价值>。
 - 角色-价值定义问题，功能/能力是可协商的解决方案切入点。
 - 好的价值陈述通常来自用户目标、整体解决方案规则/流程、用户旅程下一步。
-- 验收条件属于 Confirmation，应在掌握整体解决方案与用户旅程后，用 Given/When/Then 编写。
+- 验收条件属于 Confirmation，应在掌握整体解决方案、FM 履约责任链与用户旅程后，用 Given/When/Then 编写。
 `.trim();
 
 export async function readTextFile(path: string, fallback = ""): Promise<string> {
@@ -67,7 +67,7 @@ const USER_STORY_ARTIFACT_TEMPLATES = [
 		template: "glossary.md",
 		fallback: `# 用户故事概念字典
 
-> 维护角色、稳定目标、业务术语、关键规则和范围边界。可用 \`/story-context\` 或 \`/story-glossary\` 更新。
+> 维护角色、稳定目标、业务术语、关键规则和范围边界。由 \`/fm-model\` 从 FM YAML 源模型派生。
 
 ## 用户角色与目标
 - <角色>：<稳定业务目标>
@@ -90,7 +90,7 @@ const USER_STORY_ARTIFACT_TEMPLATES = [
 		template: "domain-model.md",
 		fallback: `# 用户故事领域模型
 
-> 维护领域对象、关系、生命周期和业务不变量。可用 \`/story-context\` 或 \`/domain-model\` 更新。
+> 维护领域对象、关系、生命周期和业务不变量。由 \`/fm-model\` 从 FM YAML 源模型派生。
 
 ## 模型说明
 - <领域模型覆盖的业务范围和关键假设>
@@ -117,7 +117,7 @@ classDiagram
 		template: "story-map.md",
 		fallback: `# 用户故事地图
 
-> 维护用户旅程、故事拆分、故事边界和依赖。可用 \`/story-context\` 或 \`/story-map\` 更新。
+> 维护用户旅程、故事拆分、故事边界和依赖。由 \`/fm-model\` 从 FM YAML 源模型派生。
 
 ## 范围 / 业务目标
 - <本次故事地图覆盖的业务目标或 Epic>
@@ -169,12 +169,14 @@ export async function ensureUserStoryArtifactTemplates(cwd: string): Promise<str
 }
 
 export async function readKnowledgeContext(cwd: string): Promise<string> {
-	const [glossary, model, storyMap] = await Promise.all([
+	const [fmModel, glossary, model, storyMap] = await Promise.all([
+		readFmModelSnapshot(cwd),
 		readProjectFile(cwd, ".pi/user-story/glossary.md"),
 		readProjectFile(cwd, ".pi/user-story/domain-model.md"),
 		readProjectFile(cwd, ".pi/user-story/story-map.md"),
 	]);
 	return [
+		"# FM YAML 源模型\n\n" + (fmModel.trim() || "（暂无）"),
 		"# 概念字典\n\n" + (glossary.trim() || "（暂无）"),
 		"# 领域模型\n\n" + (model.trim() || "（暂无）"),
 		"# 故事地图\n\n" + (storyMap.trim() || "（暂无）"),
@@ -191,6 +193,43 @@ export async function readLatestStorySession(cwd: string): Promise<string> {
 	} catch {
 		return "";
 	}
+}
+
+export async function readFmModelSnapshot(cwd: string): Promise<string> {
+	const root = resolve(cwd, ".pi", "user-story", "fm-model");
+	const entries: Array<{ path: string; content: string }> = [];
+	const maxFiles = 80;
+	const maxCharsPerFile = 6000;
+
+	async function walk(dir: string, relativeDir = ""): Promise<void> {
+		if (entries.length >= maxFiles) return;
+		let items;
+		try {
+			items = await readdir(dir, { withFileTypes: true });
+		} catch {
+			return;
+		}
+		items.sort((a, b) => a.name.localeCompare(b.name));
+		for (const item of items) {
+			if (entries.length >= maxFiles) return;
+			const relPath = relativeDir ? join(relativeDir, item.name) : item.name;
+			const fullPath = join(dir, item.name);
+			if (item.isDirectory()) {
+				await walk(fullPath, relPath);
+				continue;
+			}
+			if (!/\.(ya?ml|md|txt)$/i.test(item.name)) continue;
+			const content = await readTextFile(fullPath, "");
+			entries.push({
+				path: `.pi/user-story/fm-model/${relPath}`,
+				content: content.length > maxCharsPerFile ? `${content.slice(0, maxCharsPerFile)}\n...（已截断）` : content,
+			});
+		}
+	}
+
+	await walk(root);
+	if (entries.length === 0) return "（暂无 FM YAML 模型）";
+	return entries.map((entry) => `## ${entry.path}\n\n\`\`\`yaml\n${entry.content.trim()}\n\`\`\``).join("\n\n");
 }
 
 export async function buildPrompt(templatePath: string, fallbackTemplate: string, values: Record<string, string>): Promise<string> {
