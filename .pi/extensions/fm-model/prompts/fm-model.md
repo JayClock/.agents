@@ -38,6 +38,8 @@ $5
 1. 先阅读并遵循 `skills/modeling/SKILL.md`；生成或审查完整 FM 模型时还要阅读 `skills/modeling/references/fm-modeling-rules.md`。
 2. 使用 Fulfillment Modeling 的建模方式：
    - 先识别 Contract 与 Bounded Context；一个 Contract 是一条主要履约链。
+   - FM entity 的 `name` 不使用冗余类型后缀：避免 `Contract`、`Context`、`Role`、`Request`、`Confirmation`、`Evidence` 等后缀；用业务对象、业务动作或业务结果命名，由 `kind` 表明 FM 类型。示例：`AcademicProgramEnrollment`（`kind: Contract`）、`StudentEnrollee`（`kind: Party Role`）、`ProgramEnrollmentResult`（`kind: Fulfillment Confirmation`）。
+   - FM entity 的 `label` 必须与 `name` 的业务语义对应，也避免“合同 / 上下文 / 角色 / 请求 / 确认 / 证据”等仅表达 FM 类型的尾缀；FM 类型只放在 `kind`。
    - 识别 Party Role、Domain Role、Third Party Role、Context Role、Evidence As Role。
    - 每个业务责任表达为 `Fulfillment Request -> Fulfillment Confirmation`。
    - 业务对象和稳定事实放入 Contract、Thing、Evidence 或 attributes。
@@ -62,6 +64,9 @@ $5
 6. 三份派生产物的内容应明确包含：
    - glossary：角色、目标、术语、业务规则、范围边界。
    - domain-model：Contract/Context、Evidence 链、Request/Confirmation 对、Thing、关键关系、生命周期、业务不变量、待验证点。
-   - story-map：按角色目标 → 旅程阶段 → Request/Confirmation 薄片拆分故事；标出故事边界、异常流和依赖。
+   - story-map：主体面向业务读者，用自然语言描述用户旅程、故事拆分、故事边界、异常流和依赖；不要把角色名或 FM entity 名称作为主要标题。
+   - story-map 的每个 Journey step / Thin slice 都要用自然语言写明：主要受益者、谁提出、谁确认、业务结果。
+   - story-map 中的“谁提出”来自 Request 相邻的 Party Role，“谁确认”来自 Confirmation 相邻的 Party Role；若 FM 图里无法唯一判断，写入待验证点，不要猜测。
    - 引用 FM entity 名称时使用 Markdown 链接，便于从 `.pi/user-story/*.md` 跳转到源 YAML，例如 [`EntityName`](fm-model/entities/EntityName.yaml)；属性引用写成 [`EntityName`](fm-model/entities/EntityName.yaml).`attributeName`。
+   - story-map 中的 FM entity 链接和 Request/Confirmation 来源放入 `<details><summary>FM 来源</summary>...</details>` 折叠区，主文案保持自然语言。
 7. 最后简短说明：修改了哪些 FM YAML 文件、自检结果、派生更新了哪些视图、还有哪些未决业务问题。
