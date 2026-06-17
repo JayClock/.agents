@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """Validate a Fulfillment Modeling model stored as YAML files.
 
-Expected layout:
+Expected graph layout:
   fm-model/
-    summary.yaml
-    entities/<friendly-entity-name>.yaml
-    relationships/<friendly-source>_to_<friendly-target>.yaml
+    entities/<entity-slug>.<kind-slug>.yaml
+    relationships/<source-entity-slug>-to-<target-entity-slug>.yaml
 
-Each YAML file must contain exactly one object. Entity name values are used as
-stable references. Relationship source/target values reference entity names.
+Optional Markdown docs and a legacy summary.yaml are allowed, but the YAML graph
+files are the model source of truth. Each YAML file must contain exactly one
+object. Entity name values are used as stable references. Relationship
+source/target values reference entity names.
 """
 
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -23,7 +25,7 @@ try:
 except ImportError:  # pragma: no cover - environment issue
     yaml = None  # type: ignore[assignment]
 
-from fm_graph_validation import validate_graph
+from fm_graph_validation import KIND_SLUGS, validate_graph
 
 DISALLOWED_TRANSPORT_KEYS = {
     "operation",
@@ -81,7 +83,6 @@ def validate_yaml_model(root: Path) -> list[str]:
     entities: list[dict[str, Any]] = []
     relationships: list[dict[str, Any]] = []
     relationship_file_stems: set[str] = set()
-    summary_count = 0
 
     for path in yaml_files:
         rel = path.relative_to(root)
@@ -114,19 +115,20 @@ def validate_yaml_model(root: Path) -> list[str]:
 
         doc_type = normalize(doc.get("type"))
         if doc_type == "summary":
-            summary_count += 1
             if normalize(doc.get("summary")) is None:
                 errors.append(f"{rel} summary must be a non-empty string.")
             continue
         if doc_type == "entity":
             if "entities" not in rel.parts:
                 errors.append(f"entity file {rel} should be under entities/.")
+            validate_entity_filename(doc, rel, errors)
             graph_entity = entity_for_graph(doc, rel, errors)
             entities.append(graph_entity)
             continue
         if doc_type == "relationship":
             if "relationships" not in rel.parts:
                 errors.append(f"relationship file {rel} should be under relationships/.")
+            validate_relationship_filename(doc, rel, errors)
             if path.stem in relationship_file_stems:
                 errors.append(f"duplicate relationship filename stem '{path.stem}'.")
             relationship_file_stems.add(path.stem)
@@ -138,8 +140,6 @@ def validate_yaml_model(root: Path) -> list[str]:
             f"{rel} type must be one of summary, entity, or relationship; found {doc.get('type')!r}."
         )
 
-    if summary_count == 0:
-        errors.append("model should include summary.yaml with type: summary.")
     if not entities:
         errors.append("model must include at least one entity YAML file.")
     if not relationships:
@@ -149,6 +149,44 @@ def validate_yaml_model(root: Path) -> list[str]:
         errors.extend(validate_graph({"entities": entities, "relationships": relationships}))
 
     return errors
+
+
+def validate_entity_filename(doc: dict[str, Any], rel: Path, errors: list[str]) -> None:
+    name = normalize(doc.get("name"))
+    kind = normalize(doc.get("kind"))
+    kind_slug = KIND_SLUGS.get(kind or "")
+    if rel.suffix != ".yaml":
+        errors.append(f"entity file {rel} must use .yaml extension.")
+    if name is None or kind_slug is None:
+        return
+    expected_name = f"{to_kebab(name)}.{kind_slug}.yaml"
+    if rel.name != expected_name:
+        errors.append(
+            f"entity file {rel} should be named {expected_name} based on name '{name}' and kind '{kind}'."
+        )
+
+
+def validate_relationship_filename(doc: dict[str, Any], rel: Path, errors: list[str]) -> None:
+    source = normalize(doc.get("source"))
+    target = normalize(doc.get("target"))
+    if rel.suffix != ".yaml":
+        errors.append(f"relationship file {rel} must use .yaml extension.")
+    if source is None or target is None:
+        return
+    expected_stem = f"{to_kebab(source)}-to-{to_kebab(target)}"
+    if rel.stem != expected_stem and not rel.stem.startswith(f"{expected_stem}-"):
+        errors.append(
+            f"relationship file {rel} should be named {expected_stem}.yaml or {expected_stem}-<qualifier>.yaml."
+        )
+
+
+def to_kebab(value: str) -> str:
+    text = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1-\2", value)
+    text = re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", text)
+    text = re.sub(r"[_\s]+", "-", text)
+    text = re.sub(r"[^A-Za-z0-9-]+", "-", text)
+    text = re.sub(r"-+", "-", text).strip("-")
+    return text.lower()
 
 
 def entity_for_graph(doc: dict[str, Any], rel: Path, errors: list[str]) -> dict[str, Any]:

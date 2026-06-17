@@ -11,16 +11,69 @@ from typing import Any
 
 
 CATEGORIES = {"Evidence", "Participant", "Role", "Context"}
+KINDS_BY_CATEGORY = {
+    "Evidence": {
+        "RFP",
+        "Proposal",
+        "Contract",
+        "Fulfillment Request",
+        "Fulfillment Confirmation",
+        "Proof",
+    },
+    "Participant": {"Party", "Thing"},
+    "Role": {
+        "Party Role",
+        "Domain Role",
+        "Third Party Role",
+        "Context Role",
+        "Evidence As Role",
+    },
+    "Context": {"Bounded Context"},
+}
+KIND_SLUGS = {
+    "Bounded Context": "context",
+    "Contract": "contract",
+    "RFP": "rfp",
+    "Proposal": "proposal",
+    "Fulfillment Request": "request",
+    "Fulfillment Confirmation": "confirmation",
+    "Proof": "proof",
+    "Party": "party",
+    "Thing": "thing",
+    "Party Role": "party-role",
+    "Domain Role": "domain-role",
+    "Third Party Role": "third-party-role",
+    "Context Role": "context-role",
+    "Evidence As Role": "evidence-as-role",
+}
+TYPE_NAME_SUFFIXES = (
+    "Context",
+    "Contract",
+    "Rfp",
+    "RFP",
+    "Proposal",
+    "Request",
+    "Confirmation",
+    "Proof",
+    "Role",
+    "Party",
+    "Thing",
+)
+MOMENT_EVIDENCE_KINDS = {"Fulfillment Confirmation", "Proof"}
 EVIDENCE_KINDS_REQUIRING_PARTY_ROLE = {
     "RFP",
     "Proposal",
     "Fulfillment Request",
     "Fulfillment Confirmation",
-    "Other Evidence",
+    "Proof",
 }
-THIRD_OR_CONTEXT_ROLE_KINDS = {"Third Party Role", "Context Role"}
-ROLE_LIMITED_TARGETS = {
-    ("Evidence", "Other Evidence"),
+THIRD_PARTY_ROLE_TARGETS = {
+    ("Evidence", "Proof"),
+    ("Role", "Evidence As Role"),
+}
+CONTEXT_ROLE_TARGETS = {
+    ("Evidence", "Fulfillment Confirmation"),
+    ("Evidence", "Proof"),
     ("Role", "Evidence As Role"),
 }
 FORBIDDEN_EVIDENCE_AS_ROLE_NEIGHBORS = {
@@ -266,8 +319,16 @@ def validate_entities(entities: dict[str, dict[str, Any]]) -> list[str]:
             errors.append(
                 f"Entity '{entity_id}' category must be one of {sorted(CATEGORIES)}; found '{category}'."
             )
+        elif kind not in KINDS_BY_CATEGORY[category]:
+            errors.append(
+                f"Entity '{entity_id}' kind must be one of {sorted(KINDS_BY_CATEGORY[category])} for category {category}; found '{kind}'."
+            )
         if kind is None:
             errors.append(f"Entity '{entity_id}' kind must be a non-empty string.")
+        if name is not None and name.endswith(TYPE_NAME_SUFFIXES):
+            errors.append(
+                f"Entity '{entity_id}' name '{name}' must not end with an FM type suffix; put the type in kind and filename only."
+            )
         if normalize(entity.get("label")) is None:
             errors.append(f"Entity '{entity_id}' label must be a non-empty string.")
 
@@ -367,7 +428,7 @@ def validate_role_relationship_constraints(
             and not is_allowed_cross_context_relationship(source_kind, target_kind)
         ):
             errors.append(
-                f"relationships[{index}] invalid cross-context relationship {source} -> {target}; only Fulfillment Confirmation -> Evidence As Role -> Fulfillment Confirmation is allowed."
+                f"relationships[{index}] invalid cross-context relationship {source} -> {target}; only moment evidence (Fulfillment Confirmation/Proof) direct links or Evidence As Role bridges are allowed."
             )
 
         if source_kind == ("Role", "Evidence As Role") and target_kind == (
@@ -387,12 +448,21 @@ def validate_role_relationship_constraints(
                     errors.append(
                         f"Evidence As Role '{entity_id}' must not connect to {neighbor_kind[1]} entity '{neighbor_id}'."
                     )
-        if kind[0] == "Role" and kind[1] in THIRD_OR_CONTEXT_ROLE_KINDS:
+        allowed_targets: set[tuple[str | None, str | None]] | None = None
+        allowed_targets_label: str | None = None
+        if kind == ("Role", "Third Party Role"):
+            allowed_targets = THIRD_PARTY_ROLE_TARGETS
+            allowed_targets_label = "Proof or Evidence As Role"
+        elif kind == ("Role", "Context Role"):
+            allowed_targets = CONTEXT_ROLE_TARGETS
+            allowed_targets_label = "Fulfillment Confirmation, Proof, or Evidence As Role"
+
+        if allowed_targets is not None:
             for neighbor_id in adjacency.get(entity_id, []):
                 neighbor_kind = entity_kind(entities[neighbor_id])
-                if neighbor_kind not in ROLE_LIMITED_TARGETS:
+                if neighbor_kind not in allowed_targets:
                     errors.append(
-                        f"Role '{entity_id}' ({kind[1]}) may only connect to Other Evidence or Evidence As Role; found '{neighbor_id}' ({neighbor_kind[0]}/{neighbor_kind[1]})."
+                        f"Role '{entity_id}' ({kind[1]}) may only connect to {allowed_targets_label}; found '{neighbor_id}' ({neighbor_kind[0]}/{neighbor_kind[1]})."
                     )
     return errors
 
@@ -401,12 +471,16 @@ def is_allowed_cross_context_relationship(
     source_kind: tuple[str | None, str | None], target_kind: tuple[str | None, str | None]
 ) -> bool:
     return (
-        source_kind == ("Evidence", "Fulfillment Confirmation")
-        and target_kind == ("Role", "Evidence As Role")
+        is_moment_evidence(source_kind) and is_moment_evidence(target_kind)
     ) or (
-        source_kind == ("Role", "Evidence As Role")
-        and target_kind == ("Evidence", "Fulfillment Confirmation")
+        is_moment_evidence(source_kind) and target_kind == ("Role", "Evidence As Role")
+    ) or (
+        source_kind == ("Role", "Evidence As Role") and is_moment_evidence(target_kind)
     )
+
+
+def is_moment_evidence(kind: tuple[str | None, str | None]) -> bool:
+    return kind[0] == "Evidence" and kind[1] in MOMENT_EVIDENCE_KINDS
 
 
 def context_id(entities: dict[str, dict[str, Any]], entity_id: str) -> str | None:

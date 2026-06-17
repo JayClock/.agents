@@ -1,107 +1,45 @@
 ---
 name: modeling
-description: General Fulfillment Modeling guidance for analyzing business/software requirements into contract-centered, presentation-neutral graph models written directly as YAML files by default. Use when Codex needs to create or update FM model YAML files, identify Contract contexts, Party Roles, presales evidence, Fulfillment Request and Fulfillment Confirmation evidence, Other Evidence, Evidence As Role, multi-contract boundaries, valid FM relationship constraints, business rules, downstream signals, or scenario paths without binding to a physical database schema or screen schema. For database table design from FM graphs, use the fm-database-design skill instead.
+description: 履约建模（Fulfillment Modeling，FM）指导，用于将业务或软件需求转化为以合同为中心、与表现层无关的 YAML 图模型。当用户要求创建、更新、审查或校验涉及合同、上下文、Party Role、Participant Party、RFP/Proposal 售前凭证、Fulfillment Request、Fulfillment Confirmation、Proof 凭证、Evidence As Role、Domain/Third Party/Context Role、多合同边界、业务规则、下游信号或场景路径的 FM 模型时使用本 skill。本 skill 会写入模型文件并运行内置自检；如果用户要求从 FM 图生成数据库表、SQL、存储或物理 schema 设计，请改用 fm-database-design。
 ---
 
-# Fulfillment Modeling
+# 履约建模（Fulfillment Modeling）
 
-## Purpose
+## 事实来源
 
-Model requirements with Fulfillment Modeling (FM): start from contracts and business fulfillment responsibilities, then derive contexts, roles, evidences, requests, confirmations, and valid business-flow relationships. Prefer business semantics over technical components.
+`references/fm-modeling-rules.md` 是 FM 的权威规则手册。请将本 `SKILL.md` 仅作为简短操作指南；不要在这里复制完整实体词典、命名规则、文件布局、关系约束或自检清单。如果本文件、脚本提示或既有习惯与 reference 冲突，请遵循 reference，并修正产生冲突的内容。
 
-FM is a pure business-semantic model. Keep database tables, APIs, services, modules, deployment, frameworks, screen concerns, and other technical implementation details outside the model unless the user explicitly asks for a separate implementation artifact. Business objects, responsibilities, rules, downstream signals, and scenario paths must be expressed through FM's existing Contract/Evidence/Request/Confirmation/Role/Context entity kinds and relationship constraints.
+在创建、更新或审查完整 FM 模型之前，先读取 `references/fm-modeling-rules.md`。当任务涉及实体类型选择、多合同边界、Evidence As Role、Proof、角色参与、文件命名、业务规则放置或输出布局时尤其如此。
 
-## Workflow
+## 默认工作流
 
-1. Identify Contract contexts first. Treat one Contract as one primary fulfillment chain; if multiple contracts exist, model each chain independently.
-2. Extract Party Roles for every business subject and connect them to the relevant Contract. Distinguish Participant Party from Party Role: a Participant Party is the global real-world person or organization identity; a Party Role is that Party's identity, responsibility, and authority inside one Contract/Context. The number of global Parties depends on how many independent real-world people or organizations the business must distinguish. For key contracting sides, beneficiaries, fulfillers, or cross-context identity tracking, create or reuse the Participant Party and connect `Participant Party -> Party Role -> Contract`; if the Participant Party is omitted, it should be because the physical identity is not important or is unknown in the current model.
-3. Add optional presales Evidence only when present in the requirement: RFP before Proposal, Proposal before Contract.
-4. Add Fulfillment Request and Fulfillment Confirmation evidence only when the requirement needs request or result traceability. Do not force both to appear together; include reverse or exception flows such as refund, cancellation, suspension, or reversal according to the business evidence that must be retained.
-5. Add Other Evidence for internal business documents produced by confirmations. If the evidence bridges contexts, model it as Evidence As Role instead and do not keep duplicate Other Evidence for the same semantic.
-6. Add Domain, Third Party, Context, or Evidence roles only when they represent real business participation. Name Domain Logic and Third Party roles as human job/position semantics from the pre-software world, not as technical systems.
-7. Assign business-chain entities to their Context with `context`, using the Context entity `name`. Keep Participant Party outside Context containers.
-8. Create relationships from cause to result or initiator to action so the model reads left-to-right as business flow. Each relationship is a single 1:1 source-to-target relation; model aggregate one-to-many relationships as multiple independent 1:1 relationships.
-9. Write the model directly to YAML files by default. Use the user-provided model directory when specified; otherwise use `fm-model/` under the current working directory. Store each entity as one YAML file under `entities/`, each relationship as one YAML file under `relationships/`, and a short model summary in `summary.yaml`. Treat the YAML files as the source of truth. After writing files, run the YAML model self-check and fix every reported issue before responding.
+1. 明确模型范围和输出目录。用户指定目录时使用用户目录；否则在当前工作目录下使用 `fm-model/`。
+2. 为当前任务加载 `references/fm-modeling-rules.md` 中的权威规则，并将其作为最终依据。
+3. 先识别 Contract 上下文。将一个 Contract 视为一条主要履约链；当规则要求时，将多方合同中的法律权责拆分为多个合同上下文。
+4. 先发现 Evidence 流，再考虑实现细节：根据可追溯需要建模售前凭证，然后建模 Contract、Fulfillment Request、Fulfillment Confirmation、Proof、异常/反向凭证，以及必要的跨上下文桥接凭证。
+5. 只有当 Participant、Party Role、Domain Role、Third Party Role、Context Role 和 Evidence As Role 在权威规则下代表真实业务参与或变化点时，才添加它们。
+6. 捕获关键业务属性、属性来源凭证，并在值为派生值时使用可机器检查的 `calculationRule` / `precondition` 表达式。
+7. 直接写入或更新 YAML 图模型文件。磁盘上的文件是事实来源；根据当前模型创建、覆盖、重命名或删除实体/关系文件。
+8. 运行内置 YAML 自检，并在回复前修复所有报告的问题。
+9. 脚本通过后，手动复核 reference 中的语义清单；简要说明仍未解决的假设或问题。
 
-## Output Guidance
+## 输出契约
 
-The model's semantic core is graph entities and relationships. Persist the graph as YAML files by default. Write files and respond with changed file paths plus check status.
+- 默认将图模型持久化为 YAML 文件。文件布局、文件名约定、允许的类别/类型以及更新规则均以 `references/fm-modeling-rules.md` 为准。
+- 保持 FM 与表现层无关：除非用户明确要求单独的实现设计产物，否则不要将 API、服务、页面、数据库表、队列、引擎、SDK 或部署关注点建模为 FM 实体。
+- 按 reference 中的定义，使用 `Proof` 表示其它可追溯凭证；不要引入遗留或临时的凭证类型。
+- 回复时给出简洁摘要，包括变更的文件路径和自检状态。
 
-Default directory layout:
+## 可执行自检
 
-```text
-fm-model/
-  summary.yaml
-  entities/
-    SalesFulfillmentContext.yaml
-    SellerFulfillmentRole.yaml
-    SalesContract.yaml
-  relationships/
-    SalesContract_to_DeliveryRequest.yaml
-    DeliveryRequest_to_DeliveryConfirmation.yaml
-```
-
-Each YAML file contains exactly one semantic object. Use friendly, stable filenames based on business `name` values. The entity `name` is the stable reference key used by relationships and context membership.
-
-Example `summary.yaml`:
-
-```yaml
-type: summary
-summary: 销售履约模型
-```
-
-Example entity file `entities/SalesContract.yaml`:
-
-```yaml
-type: entity
-category: Evidence
-kind: Contract
-name: SalesContract
-label: 销售合同
-context: SalesFulfillmentContext
-attributes:
-  - name: contractAmount
-    label: 合同金额
-    valueType: Money
-    required: true
-    meaning: 双方约定的履约金额
-```
-
-Example relationship file `relationships/SalesContract_to_DeliveryRequest.yaml`:
-
-```yaml
-type: relationship
-source: SalesContract
-target: DeliveryRequest
-label: 合同触发交付申请
-```
-
-For a new/initial model, create the directory layout and write every entity and relationship file. For an existing model, update files in place: create new YAML files for new graph elements, overwrite existing YAML files for changed graph elements, and delete YAML files for removed graph elements. The files on disk are the source of truth.
-
-Filename rules: entity filenames should be derived from entity `name`, such as `SalesContract.yaml`. Relationship filenames should be derived from the source and target entity names, such as `SalesContract_to_DeliveryRequest.yaml`. If a filename collides, append a short meaningful qualifier or numeric suffix. Use ASCII letters, numbers, `_`, and `-` in filenames.
-
-Entity `name` values must be non-empty and unique across all entity files. Relationship filenames must be unique across all relationship files. Each relationship must use scalar string `source` and `target` entity names that reference existing entity files. When deleting an entity, also delete every incident relationship file; never leave dangling relationships.
-
-Do not introduce project-specific persistence payload fields, enum spellings, validation fields, or screen/presentation fields unless another skill or the user provides that target schema.
-
-## Executable Self-Check
-
-After writing or updating YAML files, run the YAML model self-check against the model directory:
+按本 skill 目录解析内置脚本路径。写入或更新模型后，运行：
 
 ```bash
-python3 scripts/self_check_fm_yaml.py fm-model/
+python3 scripts/self_check_fm_yaml.py <model-dir>
 ```
 
-Use the user-provided model directory instead of `fm-model/` when applicable. Fix every reported issue before responding.
+请使用实际模型目录替换 `<model-dir>`。在最终回复前修复所有失败项。如果脚本与 `references/fm-modeling-rules.md` 不一致，请将其视为 skill 缺陷，并让脚本或说明与 reference 对齐。
 
-The check must cover valid YAML files, one object per file, supported `type` values, presentation-neutral entity/relationship structure, supported FM categories/kinds, duplicate entity names, endpoint existence, Context references through `context`, Party Role participation, Proposal/Request routing, cross-context bridge constraints, Evidence As Role constraints, and Third Party/Context Role participation constraints.
+## 相关 skill
 
-Manually review semantic duplication after the script passes:
-
-- The same business semantic is not modeled as both Other Evidence and Evidence As Role.
-
-## Reference
-
-Read `references/fm-modeling-rules.md` when generating or reviewing a complete FM model, especially for the FM entity type dictionary, multi-contract contexts, Evidence As Role, role participation constraints, file output, file updates, business-rule placement, or boundary rules.
-
-Use `$fm-database-design` instead when the user asks to turn an FM graph into database tables, physical schema, SQL DDL, immutable evidence persistence, or storage design.
+当用户要求将 FM 图转成数据库表、物理 schema、SQL DDL、不可变凭证持久化或存储设计时，请改用 `$fm-database-design`。
