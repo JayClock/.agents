@@ -50,7 +50,7 @@
 
 - `.pi/user-story/fm-model/`：FM YAML 源模型，包含 Contract、Role、Evidence、Request/Confirmation、关系和上下文边界。
 - `.pi/user-story/glossary.md`：角色、目标、术语、业务规则、范围边界。
-- `.pi/user-story/domain-model.md`：FM 派生的领域对象、关系、生命周期、业务不变量。
+- `.pi/user-story/domain-model.md`：FM 派生的领域对象、关系、业务不变量。
 - `.pi/user-story/story-map.md`：从履约责任链派生的用户旅程、故事拆分、故事边界、依赖。
 - `.pi/user-story/sessions/`：单张故事的 TQA 与验收条件。
 - `.pi/user-story/model-checks/`：模型展开与检查报告。
@@ -66,7 +66,7 @@
 
 - 优先从 Epic / 角色-价值目标切入：`作为 <角色>，我希望 <能力>，从而 <价值>`。
 - Epic 是 Contract / Bounded Context 与履约责任链的发现入口，不写成 FM YAML 实体。
-- 建议同时给出：真正受益者、稳定业务目标、业务价值、范围边界、主流程 Request -> Confirmation、异常流、规则、依赖和不纳入范围。
+- 建议同时给出：真正受益者、稳定业务目标、业务价值、范围边界、主流程中的 Request / Confirmation 凭证（如有）、异常流、规则、依赖和不纳入范围。
 - 如果没有补充输入，`/fm-model` 只基于现有 FM YAML 与三份派生视图审查刷新，不应凭空扩展业务范围。
 
 ## 使用建议

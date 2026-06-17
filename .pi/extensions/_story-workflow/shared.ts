@@ -90,7 +90,7 @@ const USER_STORY_ARTIFACT_TEMPLATES = [
 		template: "domain-model.md",
 		fallback: `# 用户故事领域模型
 
-> 维护领域对象、关系、生命周期和业务不变量。由 \`/fm-model\` 从 FM YAML 源模型派生。
+> 维护领域对象、关系和业务不变量。由 \`/fm-model\` 从 FM YAML 源模型派生。
 
 ## 模型说明
 - <领域模型覆盖的业务范围和关键假设>

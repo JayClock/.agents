@@ -18,14 +18,6 @@ EVIDENCE_KINDS_REQUIRING_PARTY_ROLE = {
     "Fulfillment Confirmation",
     "Other Evidence",
 }
-REQUIRED_LIFECYCLE_ATTRIBUTES = {
-    "RFP": ("startedAt", "expiredAt"),
-    "Proposal": ("startedAt", "expiredAt"),
-    "Fulfillment Request": ("startedAt", "expiredAt"),
-    "Contract": ("signedAt",),
-    "Fulfillment Confirmation": ("confirmedAt",),
-    "Other Evidence": ("createdAt",),
-}
 THIRD_OR_CONTEXT_ROLE_KINDS = {"Third Party Role", "Context Role"}
 ROLE_LIMITED_TARGETS = {
     ("Evidence", "Other Evidence"),
@@ -294,48 +286,6 @@ def validate_entities(entities: dict[str, dict[str, Any]]) -> list[str]:
         if entity_kind(entity) == ("Participant", "Party") and context is not None:
             errors.append(f"Participant Party entity '{entity_id}' must stay outside Context.")
 
-        errors.extend(validate_lifecycle_attributes(entity_id, entity))
-
-    return errors
-
-
-def validate_lifecycle_attributes(entity_id: str, entity: dict[str, Any]) -> list[str]:
-    category, kind = entity_kind(entity)
-    if category != "Evidence" or kind not in REQUIRED_LIFECYCLE_ATTRIBUTES:
-        return []
-
-    attributes = entity.get("attributes")
-    if not isinstance(attributes, list):
-        return [
-            f"Evidence entity '{entity_id}' ({kind}) must provide attributes with required lifecycle attributes: {', '.join(REQUIRED_LIFECYCLE_ATTRIBUTES[kind])}."
-        ]
-
-    by_name: dict[str, dict[str, Any]] = {}
-    errors: list[str] = []
-    for index, attribute in enumerate(attributes):
-        if not isinstance(attribute, dict):
-            errors.append(f"Entity '{entity_id}' attributes[{index}] must be an object.")
-            continue
-        name = normalize(attribute.get("name"))
-        if name is not None:
-            by_name[name] = attribute
-
-    for required_name in REQUIRED_LIFECYCLE_ATTRIBUTES[kind]:
-        attribute = by_name.get(required_name)
-        if attribute is None:
-            errors.append(
-                f"Evidence entity '{entity_id}' ({kind}) must include required DateTime lifecycle attribute '{required_name}'."
-            )
-            continue
-        if attribute.get("valueType") != "DateTime":
-            errors.append(
-                f"Evidence entity '{entity_id}' lifecycle attribute '{required_name}' must have valueType 'DateTime'."
-            )
-        if attribute.get("required") is not True:
-            errors.append(
-                f"Evidence entity '{entity_id}' lifecycle attribute '{required_name}' must have required: true."
-            )
-
     return errors
 
 
@@ -358,7 +308,7 @@ def validate_relationships(
         directed_relationships.append((source, target, index))
 
     errors.extend(validate_party_role_participation(entities, adjacency))
-    errors.extend(validate_request_confirmation_chain(entities, directed_relationships))
+    errors.extend(validate_proposal_request_routing(entities, directed_relationships))
     errors.extend(validate_role_relationship_constraints(entities, directed_relationships, adjacency))
     return errors
 
@@ -383,42 +333,10 @@ def validate_party_role_participation(
     return errors
 
 
-def validate_request_confirmation_chain(
+def validate_proposal_request_routing(
     entities: dict[str, dict[str, Any]], relationships: list[tuple[str, str, int]]
 ) -> list[str]:
     errors: list[str] = []
-    confirmation_predecessors: dict[str, list[str]] = defaultdict(list)
-    for entity_id, entity in entities.items():
-        if entity_kind(entity) != ("Evidence", "Fulfillment Request"):
-            continue
-        contract_predecessors = [
-            source
-            for source, target, _ in relationships
-            if target == entity_id and entity_kind(entities.get(source)) == ("Evidence", "Contract")
-        ]
-        confirmations = [
-            target
-            for source, target, _ in relationships
-            if source == entity_id
-            and entity_kind(entities.get(target)) == ("Evidence", "Fulfillment Confirmation")
-        ]
-        if len(contract_predecessors) != 1:
-            errors.append(
-                f"Fulfillment Request '{entity_id}' must have exactly one direct Contract predecessor; found {len(contract_predecessors)}."
-            )
-        if len(confirmations) != 1:
-            errors.append(
-                f"Fulfillment Request '{entity_id}' must have exactly one Fulfillment Confirmation successor; found {len(confirmations)}."
-            )
-        else:
-            confirmation_predecessors[confirmations[0]].append(entity_id)
-
-    for confirmation_id, request_ids in confirmation_predecessors.items():
-        if len(request_ids) > 1:
-            errors.append(
-                f"Fulfillment Confirmation '{confirmation_id}' must be the direct 1:1 successor of exactly one Fulfillment Request; found predecessors: {', '.join(request_ids)}."
-            )
-
     for source, target, index in relationships:
         if entity_kind(entities.get(source)) == ("Evidence", "Proposal") and entity_kind(
             entities.get(target)

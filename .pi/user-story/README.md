@@ -13,7 +13,7 @@
 
 - `fm-model/`：Fulfillment Modeling YAML 源模型。
 - `glossary.md`：从 FM 源模型派生的角色、目标、术语、业务规则、范围边界。
-- `domain-model.md`：从 FM 源模型派生的领域对象、关系、生命周期、业务不变量。
+- `domain-model.md`：从 FM 源模型派生的领域对象、关系、业务不变量。
 - `story-map.md`：从 FM 履约责任链派生的用户旅程、故事拆分、故事边界、依赖。
 - `sessions/`：单张用户故事 TQA 与 Given/When/Then。
 - `model-checks/`：验收场景驱动的模型检查报告。

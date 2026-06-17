@@ -8,7 +8,7 @@ $1
 
 目标：把业务知识建模为 `.pi/user-story/fm-model/` 下的 FM YAML 图模型，并从该源模型派生更新三份 Markdown 产物：
 - `.pi/user-story/glossary.md`：角色、目标、术语、业务规则、边界。
-- `.pi/user-story/domain-model.md`：FM 摘要、领域对象、关系、生命周期、业务不变量。
+- `.pi/user-story/domain-model.md`：FM 摘要、领域对象、关系、业务不变量。
 - `.pi/user-story/story-map.md`：用户旅程、故事拆分、故事边界、依赖。
 
 ===概念字典
@@ -30,8 +30,8 @@ $5
 输入要求 / 建模入口：
 - 优先从 Epic / 角色-价值目标切入：`作为 <角色>，我希望 <能力>，从而 <价值>`。
 - Epic 用来识别真正受益者、稳定业务目标、Contract / Bounded Context 候选边界和履约责任链；不要把 Epic 建成 FM YAML 实体。
-- 若输入只有 Epic，先把它翻译为主要 Contract、Party Role、价值边界和第一条 Evidence / Request / Confirmation 链，再逐步补齐规则、异常流和依赖。
-- 若输入是已有故事、访谈、流程或检查结果，也要先归并到角色目标、Contract 边界、履约责任、规则、异常流、范围排除项，再更新 FM 源模型。
+- 若输入只有 Epic，先把它翻译为主要 Contract、Party Role、现实主体 Party 候选、价值边界和关键 Evidence / Request / Confirmation 候选，再逐步补齐规则、异常流和依赖。
+- 若输入是已有故事、访谈、流程或检查结果，也要先归并到角色目标、Contract 边界、履约责任、Party / Party Role 映射、规则、异常流、范围排除项，再更新 FM 源模型。
 - 若没有本次补充材料，则基于现有 FM YAML 与三份派生视图审查和刷新；不要凭空扩展业务范围。
 
 请完成：
@@ -41,9 +41,11 @@ $5
    - FM entity 的 `name` 不使用冗余类型后缀：避免 `Contract`、`Context`、`Role`、`Request`、`Confirmation`、`Evidence` 等后缀；用业务对象、业务动作或业务结果命名，由 `kind` 表明 FM 类型。示例：`AcademicProgramEnrollment`（`kind: Contract`）、`StudentEnrollee`（`kind: Party Role`）、`ProgramEnrollmentResult`（`kind: Fulfillment Confirmation`）。
    - FM entity 的 `label` 必须与 `name` 的业务语义对应，也避免“合同 / 上下文 / 角色 / 请求 / 确认 / 证据”等仅表达 FM 类型的尾缀；FM 类型只放在 `kind`。
    - 识别 Party Role、Domain Role、Third Party Role、Context Role、Evidence As Role。
-   - 每个业务责任表达为 `Fulfillment Request -> Fulfillment Confirmation`。
+   - 区分 `Party` 与 `Party Role`：`Party` 是现实世界中独立存在且全局唯一的人或组织；`Party Role` 是该 Party 在某个 Contract / Context 中承担的身份、责任和权限。全局 Party 数量取决于业务中实际存在多少个独立现实主体，绝不是默认只有一个。
+   - 对每个关键签约方、受益方、履约方或需要跨上下文追踪身份的主体，优先判断是否需要创建或复用 Participant Party，并保持 `Participant Party -> Party Role -> Contract` 链路；若只画 Party Role 而不画 Party，必须能说明现实身份在当前模型中不重要或未知。
+   - 不要把现实主体误建为 Party Role：凡是可在现实世界中独立存在并可跨合同复用的人、组织或机构，通常是 `Party`。不要把上下文身份误建为 Party：凡是只在某个合同 / 上下文中表达责任、权限或参与方式的身份，通常是 `Party Role`。
+   - 按业务材料需要添加 Fulfillment Request、Fulfillment Confirmation 或二者之间的关系；不要强制二者同时出现。
    - 业务对象和稳定事实放入 Contract、Thing、Evidence 或 attributes。
-   - 生命周期不要建独立状态实体；用 Evidence/Contract/Thing 属性和 Request -> Confirmation 转换表达。
    - 业务规则放入 `precondition`、`calculationRule`、Domain Role 或 notes。
    - 跨 Context 只能通过 `Fulfillment Confirmation -> Evidence As Role -> Fulfillment Confirmation` 桥接。
    - 不引入数据库表、API、服务、UI 控件、消息队列或技术模块。
@@ -63,10 +65,10 @@ $5
    - `artifactType=story_map`，`title=用户故事地图`
 6. 三份派生产物的内容应明确包含：
    - glossary：角色、目标、术语、业务规则、范围边界。
-   - domain-model：Contract/Context、Evidence 链、Request/Confirmation 对、Thing、关键关系、生命周期、业务不变量、待验证点。
+   - domain-model：Contract/Context、Evidence 链、Request / Confirmation 凭证、Thing、关键关系、业务不变量、待验证点。
    - story-map：主体面向业务读者，用自然语言描述用户旅程、故事拆分、故事边界、异常流和依赖；不要把角色名或 FM entity 名称作为主要标题。
    - story-map 的每个 Journey step / Thin slice 都要用自然语言写明：主要受益者、谁提出、谁确认、业务结果。
    - story-map 中的“谁提出”来自 Request 相邻的 Party Role，“谁确认”来自 Confirmation 相邻的 Party Role；若 FM 图里无法唯一判断，写入待验证点，不要猜测。
    - 引用 FM entity 名称时使用 Markdown 链接，便于从 `.pi/user-story/*.md` 跳转到源 YAML，例如 [`EntityName`](fm-model/entities/EntityName.yaml)；属性引用写成 [`EntityName`](fm-model/entities/EntityName.yaml).`attributeName`。
-   - story-map 中的 FM entity 链接和 Request/Confirmation 来源放入 `<details><summary>FM 来源</summary>...</details>` 折叠区，主文案保持自然语言。
+   - story-map 中的 FM entity 链接和 Request / Confirmation 来源放入 `<details><summary>FM 来源</summary>...</details>` 折叠区，主文案保持自然语言。
 7. 最后简短说明：修改了哪些 FM YAML 文件、自检结果、派生更新了哪些视图、还有哪些未决业务问题。
