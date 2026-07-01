@@ -60,6 +60,48 @@ TYPE_NAME_SUFFIXES = (
     "Party",
     "Thing",
 )
+GENERAL_IMPLEMENTATION_TERMS = (
+    "api",
+    "sdk",
+    "endpoint",
+    "controller",
+    "database",
+    "datatable",
+    "messagequeue",
+    "kafka",
+    "rabbitmq",
+    "ui",
+    "接口",
+    "数据库",
+    "数据表",
+    "消息队列",
+    "队列",
+    "部署",
+    "登录页面",
+    "页面交互",
+    "app交互",
+    "播放器实现",
+    "推荐算法",
+)
+DOMAIN_ROLE_IMPLEMENTATION_TERMS = (
+    "api",
+    "sdk",
+    "engine",
+    "queue",
+    "gateway",
+    "database",
+    "系统",
+    "引擎",
+    "队列",
+    "网关",
+    "数据库",
+    "数据表",
+    "规则引擎",
+    "风控服务",
+    "支付网关",
+    "推荐服务",
+)
+ENTITY_NAME_RE = re.compile(r"^[A-Z][A-Za-z0-9]*$")
 MOMENT_EVIDENCE_KINDS = {"Fulfillment Confirmation", "Other Evidence"}
 EVIDENCE_KINDS_REQUIRING_ACTUAL_PARTY = {
     "RFP",
@@ -184,6 +226,7 @@ def validate_graph(graph: Any) -> list[str]:
     relationships = collect_relationships(relationships_value, errors)
 
     errors.extend(validate_entities(entities))
+    errors.extend(validate_attribute_references(entities))
     errors.extend(validate_relationships(entities, relationships))
     return errors
 
@@ -340,12 +383,28 @@ def validate_entities(entities: dict[str, dict[str, Any]]) -> list[str]:
             )
         if kind is None:
             errors.append(f"Entity '{entity_id}' kind must be a non-empty string.")
+        if name is not None and ENTITY_NAME_RE.fullmatch(name) is None:
+            errors.append(
+                f"Entity '{entity_id}' name '{name}' must be an ASCII PascalCase identifier."
+            )
         if name is not None and name.endswith(TYPE_NAME_SUFFIXES):
             errors.append(
                 f"Entity '{entity_id}' name '{name}' must not end with an FM type suffix; put the type in kind and filename only."
             )
         if normalize(entity.get("label")) is None:
             errors.append(f"Entity '{entity_id}' label must be a non-empty string.")
+
+        implementation_hits = forbidden_term_hits(entity_search_text(entity), GENERAL_IMPLEMENTATION_TERMS)
+        if implementation_hits:
+            errors.append(
+                f"Entity '{entity_id}' appears to model implementation detail(s) {implementation_hits}; FM entities should stay business-level."
+            )
+        if (category, kind) == ("Role", "Domain Role"):
+            role_hits = forbidden_term_hits(entity_search_text(entity), DOMAIN_ROLE_IMPLEMENTATION_TERMS)
+            if role_hits:
+                errors.append(
+                    f"Domain Role entity '{entity_id}' uses implementation/system term(s) {role_hits}; name the business capability or evaluator instead."
+                )
 
         context = normalize(entity.get("contextId"))
         if context is not None:
@@ -365,6 +424,35 @@ def validate_entities(entities: dict[str, dict[str, Any]]) -> list[str]:
         errors.extend(validate_attributes(entity_id, entity))
 
     return errors
+
+
+def entity_search_text(entity: dict[str, Any]) -> str:
+    parts: list[str] = []
+    for key in ("id", "name", "label", "kind", "category", "notes"):
+        value = entity.get(key)
+        if isinstance(value, str):
+            parts.append(value)
+    for attribute in entity.get("attributes") or []:
+        if isinstance(attribute, dict):
+            for key in ("name", "label", "meaning", "calculationRule", "precondition", "notes"):
+                value = attribute.get(key)
+                if isinstance(value, str):
+                    parts.append(value)
+    return " ".join(parts)
+
+
+def forbidden_term_hits(text: str, terms: tuple[str, ...]) -> list[str]:
+    lower_text = text.lower()
+    hits: list[str] = []
+    for term in terms:
+        normalized_term = term.lower()
+        if normalized_term.isascii() and re.fullmatch(r"[a-z0-9]+", normalized_term):
+            pattern = rf"(?<![a-z0-9]){re.escape(normalized_term)}(?![a-z0-9])"
+            if re.search(pattern, lower_text):
+                hits.append(term)
+        elif normalized_term in lower_text:
+            hits.append(term)
+    return hits
 
 
 def validate_attributes(entity_id: str, entity: dict[str, Any]) -> list[str]:
@@ -416,6 +504,49 @@ def validate_attributes(entity_id: str, entity: dict[str, Any]) -> list[str]:
                     f"Entity '{entity_id}' attributes[{index}] precondition must be a boolean expression, not an assignment."
                 )
 
+    return errors
+
+
+ENTITY_ATTRIBUTE_PATH_RE = re.compile(
+    r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b"
+)
+
+
+def validate_attribute_references(entities: dict[str, dict[str, Any]]) -> list[str]:
+    """Check Entity.attribute references in calculationRule/precondition expressions."""
+    errors: list[str] = []
+    attribute_names_by_entity: dict[str, set[str]] = {}
+    entity_display_to_id: dict[str, str] = {}
+
+    for entity_id, entity in entities.items():
+        display_name = normalize(entity.get("name")) or entity_id
+        entity_display_to_id[display_name] = entity_id
+        attribute_names: set[str] = set()
+        for attribute in entity.get("attributes") or []:
+            if isinstance(attribute, dict):
+                attribute_name = normalize(attribute.get("name"))
+                if attribute_name is not None:
+                    attribute_names.add(attribute_name)
+        attribute_names_by_entity[display_name] = attribute_names
+
+    for entity_id, entity in entities.items():
+        for index, attribute in enumerate(entity.get("attributes") or []):
+            if not isinstance(attribute, dict):
+                continue
+            for field in ("calculationRule", "precondition"):
+                expression = attribute.get(field)
+                if not isinstance(expression, str):
+                    continue
+                for referenced_entity, referenced_attribute in ENTITY_ATTRIBUTE_PATH_RE.findall(expression):
+                    if referenced_entity not in entity_display_to_id:
+                        errors.append(
+                            f"Entity '{entity_id}' attributes[{index}] {field} references unknown entity '{referenced_entity}'."
+                        )
+                        continue
+                    if referenced_attribute not in attribute_names_by_entity.get(referenced_entity, set()):
+                        errors.append(
+                            f"Entity '{entity_id}' attributes[{index}] {field} references unknown attribute '{referenced_entity}.{referenced_attribute}'."
+                        )
     return errors
 
 
@@ -637,23 +768,34 @@ def validate_role_relationship_constraints(
                 f"relationships[{index}] invalid cross-context relationship {source} -> {target}; only moment evidence (Fulfillment Confirmation/Other Evidence) direct links or Evidence As Role bridges are allowed."
             )
 
-        if source_kind == ("Role", "Evidence As Role") and target_kind == (
-            "Evidence",
-            "Fulfillment Request",
-        ):
+        if {source_kind, target_kind} == {
+            ("Role", "Evidence As Role"),
+            ("Evidence", "Fulfillment Request"),
+        }:
             errors.append(
-                f"relationships[{index}] Evidence As Role must not point to Fulfillment Request."
+                f"relationships[{index}] Evidence As Role must not connect to Fulfillment Request."
             )
 
     for entity_id, entity in entities.items():
         kind = entity_kind(entity)
         if kind == ("Role", "Evidence As Role"):
+            moment_neighbors: list[str] = []
             for neighbor_id in adjacency.get(entity_id, []):
                 neighbor_kind = entity_kind(entities[neighbor_id])
                 if neighbor_kind in FORBIDDEN_EVIDENCE_AS_ROLE_NEIGHBORS:
                     errors.append(
                         f"Evidence As Role '{entity_id}' must not connect to {neighbor_kind[1]} entity '{neighbor_id}'."
                     )
+                if neighbor_kind in {("Participant", "Party"), ("Role", "Party Role")}:
+                    errors.append(
+                        f"Evidence As Role '{entity_id}' must not connect to actual responsible party/party role '{neighbor_id}'. It is played by moment evidence, not by a party."
+                    )
+                if is_moment_evidence(neighbor_kind):
+                    moment_neighbors.append(neighbor_id)
+            if not moment_neighbors:
+                errors.append(
+                    f"Evidence As Role '{entity_id}' must be played by at least one moment evidence (Fulfillment Confirmation or Other Evidence)."
+                )
         allowed_targets: set[tuple[str | None, str | None]] | None = None
         allowed_targets_label: str | None = None
         if kind == ("Role", "Third Party Role"):

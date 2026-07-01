@@ -4,6 +4,16 @@
 
 当任务需要精确生成或校验 Fulfillment Modeling（FM，履约建模）时，使用以下规则。
 
+## 目录与加载建议
+
+- `核心视角`：先读，用于判断是否应该做 FM，以及如何区分业务逻辑与领域逻辑。
+- `实体类别` / `四色建模到 FM 的映射`：选择 Evidence、Participant、Role、Context 时读。
+- `FM 流程`：创建或重构完整模型时读。
+- `文件输出` / `YAML 图模型规范` / `命名约定` / `关系约定`：落盘或校验 YAML 时读。
+- `属性计算规则`：写 `calculationRule` 或 `precondition` 时读。
+- `业务宏流程与核心业务模式` 模板：用户要求复用分析、平台化或中台设计时读。
+- `建模反模式` / `自检清单`：回复前手工复核时读。
+
 ## 核心视角
 
 - 优先建模业务逻辑，而不是实现逻辑：关注业务如何证明权利、责任、支付、KPI 结果和异常处理。
@@ -38,6 +48,16 @@ PDF 中的标准图例用于画图和沟通；YAML 是可校验的机器表达�
 | 其它凭证 / Evidence | `kind: Other Evidence` | 常见时间属性为 `createdAt`；文件后缀使用 `.evidence.yaml`。 |
 | 当事人角标、角色角标 | 不单独落盘为实体类型 | 用 `Party Role`、关系和 `label` / `notes` 表达即可。 |
 | 关联、扮演某角色、跨上下文关联 | 一个关系文件一条关系 | 可选 `relationshipKind: association`、`rolePlaying`、`crossContextAssociation`；图上的 `1/N` 数量用多个 1:1 关系文件表达。 |
+
+### 建模层次：简化建模图、标准建模图与 YAML
+
+FM 可以在三个层次上表达同一业务模型：
+
+1. **简化建模图**：只区分 Evidence、Participant、Role 和上下文边界，用于快速理解业务、确定合同上下文和沟通流。简化图可以省略具体子类型、属性和部分数量关系，但不能混淆业务凭证与技术动作。
+2. **标准建模图**：补充 RFP、Proposal、Contract、Fulfillment Request、Fulfillment Confirmation、Other Evidence、Party、Thing、Party Role、Domain Role、Third Party Role、Context Role、Evidence As Role 等子类型，以及时段/时刻、1:1 关系、角色扮演和跨上下文桥接。标准图用于发现业务变化点和验证业务脊梁。
+3. **YAML 图模型**：标准建模图的机器可读落盘形式。YAML 必须遵守一文件一实体/关系、实体名称唯一、关系端点引用实体 `name`、关系一律 1:1 等约束。
+
+建模时推荐先用简化图定位业务事实，再用标准图补齐类型、关键属性和关系，最后落 YAML。不要因为 YAML 能表达更多细节，就跳过业务脊梁、纸质单据演练和变化点识别。
 
 ## 四色建模到 FM 的映射
 
@@ -125,6 +145,39 @@ PDF 中的标准图例用于画图和沟通；YAML 是可校验的机器表达�
 - “价格计算器、退订检查器、风控审批人、价格评估员、折扣审批人”是 Role / Domain Role；不要建模为风控系统、定价服务或审批引擎。
 - “支付机构、税务发票平台、物流承运方”在内部控制之外时是 Role / Third Party Role；不要让它们直接替代当前上下文内的责任参与方。
 - “另一个合同上下文”如果不展开内部逻辑，可以抽象为 Role / Context Role；如果需要展开其合同、请求和确认，则应建立独立 Context。
+
+#### 标准模式片段
+
+以下片段用于在复杂模型中快速选择结构。片段只说明语义关系；落盘时仍应创建具体实体文件和一条关系一个 YAML 文件。
+
+1. **一个 Fulfillment Request 对一个 Fulfillment Confirmation**
+   - 适用：一次请求只需要一次确定结果，例如开工申请 → 开工确认、付款申请 → 付款确认。
+   - 结构：`Contract → Request → Confirmation`。
+   - 注意：Request 是时段，Confirmation 是时刻；确认发生前业务状态未知。
+2. **一个 Fulfillment Request 对多个 Fulfillment Confirmation**
+   - 适用：一次请求下允许分批、分阶段或多项并列结果，例如一次发货指令对应多个包裹发货确认，或一个迭代范围对应多个故事验收确认。
+   - 结构：`Contract → Request → ConfirmationA`、`Request → ConfirmationB`、`Request → ConfirmationC`。
+   - 注意：这些 Confirmation 默认并列；只有后续确认依赖前序确认并产生新责任时，才拆成串联的多段 Request / Confirmation。
+3. **多个 Fulfillment Request 共用一个 Fulfillment Confirmation**
+   - 适用：不同指标、账期或履约请求可以由同一批确定结果证明，例如季度指标和年度指标共同引用收入确认。
+   - 结构：`RequestA → SharedConfirmation`、`RequestB → SharedConfirmation`。
+   - 注意：共用确认必须在权责关系上等价；不要为了省图而合并语义不同的确认。
+4. **跨上下文支付 / 退款桥接**
+   - 适用：销售、订阅或订单合同只依赖“付款已确认 / 退款已确认”结果，不关心微信、支付宝、预付余额等支付上下文内部流程。
+   - 结构：当前上下文中建 `PaymentResult` 或 `RefundResult` 作为确认；外部支付上下文的时刻类凭证通过 `Evidence As Role` 扮演当前上下文所依赖的支付证明 / 退款证明。
+   - 注意：只有 Fulfillment Confirmation 或 Other Evidence 这类时刻凭证能扮演 Evidence As Role；不要让 Fulfillment Request、Contract、RFP 或 Proposal 扮演。
+5. **合约前 / 渠道上下文变化点**
+   - 适用：同一个最终 Contract 可由询价、招标、固定套餐、活动、拼团、赠送或谈判等多种签约路径生成。
+   - 结构：不同合约前 Context 分别建 RFP / Proposal；它们通过最终 Contract 与合约上下文衔接。
+   - 注意：不要把所有渠道强行归并成一条流程；合同履约通常只关心最终 Contract 与必要审计追溯。
+6. **内部 KPI / 目标-实际模式**
+   - 适用：无直接现金往来，但存在绩效、SLA、OKR、验收或工作产出约束。
+   - 结构：`PerformanceAgreement → TargetRequest → ActualResultConfirmation`，必要时补充 `ContactRecord`、`ProgressReport`、`KpiResult` 等证据。
+   - 注意：不要发明支付流；从目标、实际结果和持续低于计划等异常履约义务切入。
+7. **凭证不可变与反向凭证**
+   - 适用：取消、退款、红冲、冲正、补偿、赔偿、服务中止、合同作废或更正。
+   - 结构：保留原凭证，新增 `CancellationRequest/Result`、`RefundRequest/Result`、`ReversalEvidence` 或 `CompensationRequest/Result` 等新 Evidence。
+   - 注意：不要把业务状态覆盖、update/delete 或修改旧凭证当作 FM 语义。
 
 ### Evidence（凭证）
 
@@ -377,34 +430,46 @@ fm-model/
 
 ### 02-business-patterns.md 模板
 
-仅当用户要求业务扩展、复用分析、宏流程梳理或核心业务模式识别时输出。
+仅当用户要求业务扩展、复用分析、宏流程梳理、平台化/中台设计或核心业务模式识别时输出。该文件是语义层产物，用于说明多个相似业务如何共享稳定履约链路，并把差异放在 Role、Thing、Domain Role、Evidence As Role、合约前 Context 或不同 Contract 上；不要因此新增 FM 实体类型。
 
 ````md
 # 业务宏流程与核心业务模式
 
 ## 业务脊梁
 
-| 脊梁 | 来源 | 稳定凭证链 | 关键数据项 |
-|---|---|---|---|
-| <收入流 / 成本结构 / KPI 名称> | <现金收入 / 现金支出 / 目标-实际> | <Evidence → Evidence → Evidence> | <金额 / 时间 / KPI / SLA> |
+| 脊梁 | 来源 | 稳定凭证链 | 关键数据项 | 正常验证 | 异常 / 追责验证 |
+|---|---|---|---|---|---|
+| <收入流 / 成本结构 / KPI 名称> | <现金收入 / 现金支出 / 目标-实际> | <Evidence → Evidence → Evidence> | <金额 / 时间 / KPI / SLA> | <如何证明履约完成> | <如何证明退款 / 赔偿 / 超时 / 未达标> |
 
 ## 业务宏流程
 
 ```text
-<Contract / Context A> → <核心 Request> → <核心 Confirmation> → <下游凭证或上下文>
+<合约前 Context / 渠道> → <Contract> → <核心 Request> → <核心 Confirmation> → <下游凭证或外部 Context>
 ```
+
+## 相似业务线对比
+
+| 业务线 / 产品 / 渠道 | 使用的 Contract | 稳定履约链路 | 差异点 | 不变点 |
+|---|---|---|---|---|
+| <业务线 A> | <ContractName> | <Request → Confirmation> | <Thing / Party Role / Domain Role / Evidence As Role / 合约前 Context> | <相同的权责、凭证或 KPI> |
 
 ## 核心业务模式
 
-| 模式 | 覆盖上下文 / 合约 | 稳定履约链路 | 变化点 |
+| 模式 | 覆盖上下文 / 合约 | 稳定履约链路 | 变化点 | 可扩展方向 |
+|---|---|---|---|---|
+| <模式名> | <Context / Contract> | <Request → Confirmation> | <Party Role / Thing / Domain Role / Evidence As Role / 合约前 Context / 外部 Context> | <新增业务线时应新增或替换什么> |
+
+## 变化点清单
+
+| 变化点 | 承载元素 | 为什么是变化点 | 新增变化时的建模方式 |
 |---|---|---|---|
-| <模式名> | <Context / Contract> | <Request → Confirmation> | <Party Role / Thing / Domain Role / Evidence As Role / 合约前 Context / 外部 Context> |
+| <支付渠道 / 会员类型 / 权益计算 / 签约渠道 / 第三方依赖> | <Evidence As Role / Thing / Domain Role / Context Role / Proposal> | <业务上为什么会变化> | <新增 Role / Thing / Context / Evidence，而非修改核心链路> |
 
 ## 业务与领域分离
 
-| 业务上下文 | 领域上下文 / 领域角色 | 分离依据 |
-|---|---|---|
-| <ContextName> | <Domain Role / Thing / 外部 Context> | <为什么属于领域变化点> |
+| 业务上下文 | 领域上下文 / 领域角色 | 分离依据 | 对核心业务模式的影响 |
+|---|---|---|---|
+| <ContextName> | <Domain Role / Thing / 外部 Context> | <为什么属于领域变化点> | <如何被业务链路引用或替换> |
 ````
 
 ### YAML 图模型规范
@@ -608,9 +673,11 @@ arguments       := expression ("," expression)*
 
 ## 建模反模式
 
-- 不要将 API、服务、消息队列、任务、数据库、表、页面、SDK、引擎或技术组件建模为 FM 实体，除非用户明确要求 FM 之外的实现设计。
+- 不要将 API、具体软件服务、消息队列、任务、数据库、表、页面、SDK、引擎、网关、控制器或技术组件建模为 FM 实体，除非用户明确要求 FM 之外的实现设计。
 - 不要把业务上的 update/delete/status overwrite 当成凭证生命周期；业务凭证只创建不覆盖，状态变化应由新的 Request、Confirmation 或 Other Evidence 证明。
-- Domain Role 应使用拟人化或业务能力语义命名，Third Party Role 应使用第三方机构或外部系统角色语义命名；不要把规则引擎、SDK、队列、风控服务、支付网关等具体技术组件当成 FM 角色。
+- Domain Role 应使用拟人化或业务能力语义命名，Third Party Role 应使用第三方机构或外部系统角色语义命名；不要把规则引擎、SDK、队列、风控服务、支付网关、计算服务、推荐服务等具体技术组件当成 FM 角色。
+- 不要让 Evidence As Role 连接到实际责任 Participant Party 或 Party Role；它不承担责任，只表达另一个上下文中的时刻类凭证在当前上下文中的扮演关系。
+- 不要在属性规则中引用不存在的实体或属性；如果业务上确实依赖尚未建模的来源，应先补前序 Evidence / Thing / Domain Role，或在 `notes` 中标为待确认，而不是写悬空表达式。
 - 不要将同一业务语义同时建模为 Other Evidence 和 Evidence As Role。
 - 不要将 Contract 直接连接到 Contract，也不要直接连接到另一个上下文的 Request/Confirmation。
 - 不要使用数组、逗号分隔名称、通配符或自定义端点载荷作为关系端点。

@@ -47,6 +47,10 @@ EVAL_NAME_BY_ID = {
     2: "precontract-channel-contexts",
     3: "internal-kpi-agreement",
     4: "missing-confirmation-repair",
+    5: "immutable-evidence-reversal",
+    6: "pure-domain-tool-negative",
+    7: "core-business-pattern-extraction",
+    8: "shared-confirmation-kpi",
 }
 
 IMPLEMENTATION_DETAIL_TERMS = [
@@ -270,9 +274,17 @@ def load_model(output_dir: Path) -> ModelData:
     model_dir = find_model_dir(output_dir)
     entities: list[dict[str, Any]] = []
     relationships: list[dict[str, Any]] = []
-    docs_text = ""
+    md_parts: list[str] = []
+
+    # Read explanatory output even when the correct answer is "do not build FM".
+    for path in sorted(output_dir.rglob("*.md")) + sorted(output_dir.rglob("*.txt")):
+        try:
+            md_parts.append(path.read_text(encoding="utf-8"))
+        except UnicodeDecodeError:
+            continue
+
     if model_dir is None:
-        return ModelData(None, entities, relationships, docs_text)
+        return ModelData(None, entities, relationships, "\n".join(md_parts))
 
     for path in sorted((model_dir / "entities").glob("*.yaml")):
         doc = read_yaml_file(path)
@@ -284,12 +296,6 @@ def load_model(output_dir: Path) -> ModelData:
         if doc:
             doc["_file"] = str(path)
             relationships.append(doc)
-    md_parts: list[str] = []
-    for path in sorted(model_dir.glob("*.md")):
-        try:
-            md_parts.append(path.read_text(encoding="utf-8"))
-        except UnicodeDecodeError:
-            continue
     docs_text = "\n".join(md_parts)
     return ModelData(model_dir, entities, relationships, docs_text)
 
@@ -449,6 +455,41 @@ def eval_specific_expectations(eval_id: int, model: ModelData) -> list[Expectati
         add(expectations, "DeliveryInstruction points to the added delivery/acceptance confirmation.", has_direct_link, "Checked direct relationship source=DeliveryInstruction -> matching confirmation.")
         add(expectations, "Original Purchase contract remains present.", has_entity(model, kind="Contract", pattern=r"Purchase|采购"), "Looked for Purchase/采购 Contract.")
 
+    elif eval_id == 5:
+        add(expectations, "Cancellation/reversal is modeled as new evidence rather than mutating the original evidence.", has_entity(model, kind="Fulfillment Request", pattern=r"取消|冲正|红冲|Cancel|Reversal") and has_entity(model, kind="Fulfillment Confirmation", pattern=r"取消|冲正|红冲|Cancel|Reversal"), "Looked for cancellation/reversal request and confirmation evidence.")
+        add(expectations, "Refund/compensation flow is modeled as request and confirmation evidence.", has_entity(model, kind="Fulfillment Request", pattern=r"退费|退款|赔偿|补偿|Refund|Compensation") and has_entity(model, kind="Fulfillment Confirmation", pattern=r"退费|退款|赔偿|补偿|Refund|Compensation"), "Looked for refund/compensation request and confirmation.")
+        mutating_entities = [entity.get("name", "<unnamed>") for entity in model.entities if re.search(r"Update|Delete|Overwrite|修改|删除|覆盖|状态覆盖", item_text(entity), re.IGNORECASE)]
+        add(expectations, "Model avoids update/delete/status-overwrite entities for business evidence lifecycle.", not mutating_entities, "No mutating evidence entities found." if not mutating_entities else f"Found: {mutating_entities}")
+        add(expectations, "Docs or model text explicitly mention evidence immutability or new reverse evidence.", docs_or_model_contains(model, r"不可变|不可抛弃|新增.*凭证|反向凭证|冲正|红冲|保留原"), "Searched docs/model for immutability wording.")
+
+    elif eval_id == 6:
+        add(expectations, "No fm-model YAML graph is forced for the pure domain/tool prompt.", model.model_dir is None and not model.entities and not model.relationships, f"model_dir={model.model_dir}, entities={len(model.entities)}, relationships={len(model.relationships)}")
+        add(expectations, "The response explains that the prompt is a domain/tool integration rather than an FM business system.", docs_or_model_contains(model, r"不适合|不适用|不建议.*FM|纯领域|工具|集成|不是业务系统|缺少.*合同|缺少.*权责|缺少.*凭证"), "Searched explanatory output for non-FM reasoning.")
+        add(expectations, "No invented Contract/Request/Confirmation entities are present.", not any(entity.get("kind") in {"Contract", "Fulfillment Request", "Fulfillment Confirmation"} for entity in model.entities), "Checked no contract/request/confirmation entities were created.")
+
+    elif eval_id == 7:
+        add(expectations, "Business patterns document is produced for multi-line membership analysis.", has_doc(model, "02-business-patterns.md"), "Checked for 02-business-patterns.md.")
+        add(expectations, "The model/explanation identifies a reusable core business pattern.", docs_or_model_contains(model, r"核心业务模式|稳定履约链路|业务宏流程|相似业务线"), "Searched docs/model for core pattern wording.")
+        add(expectations, "The model/explanation identifies variation points across membership products or channels.", docs_or_model_contains(model, r"变化点|会员类型|权益|支付渠道|赠送|虚拟产品|Domain Role|Evidence As Role"), "Searched docs/model for variation-point wording.")
+        add(expectations, "Membership product differences are represented through Thing/Domain Role or related variation elements.", has_entity(model, kind="Thing", pattern=r"会员|权益|观影券|虚拟|Member|Entitlement|Coupon|Product") or has_entity(model, kind="Domain Role", pattern=r"计算|Calculator|赠送|权益"), "Looked for product/entitlement Things or calculation Domain Roles.")
+
+    elif eval_id == 8:
+        add(expectations, "KPI/performance agreement is modeled as a Contract.", has_entity(model, kind="Contract", pattern=r"绩效|KPI|Performance|指标"), "Looked for KPI/performance Contract.")
+        add(expectations, "Quarterly and yearly KPI obligations are modeled as requests.", has_entity(model, kind="Fulfillment Request", pattern=r"季度|Quarter") and has_entity(model, kind="Fulfillment Request", pattern=r"年度|Year|Annual"), "Looked for quarterly and annual requests.")
+        add(expectations, "Revenue or KPI actual result is modeled as confirmation/evidence.", has_entity(model, kind="Fulfillment Confirmation", pattern=r"收入|Revenue|指标|KPI|结果|Result") or has_entity(model, kind="Other Evidence", pattern=r"收入|Revenue|指标|KPI|结果|Result"), "Looked for revenue/KPI result evidence.")
+        request_names = {str(entity.get("name")) for entity in model.entities if entity.get("kind") == "Fulfillment Request"}
+        confirmation_names = {str(entity.get("name")) for entity in model.entities if entity.get("kind") == "Fulfillment Confirmation"}
+        evidence_names = {str(entity.get("name")) for entity in model.entities if entity.get("category") == "Evidence"}
+        incoming_from_evidence: dict[str, set[str]] = {}
+        for rel in model.relationships:
+            source = str(rel.get("source"))
+            target = str(rel.get("target"))
+            if source in evidence_names and target in confirmation_names:
+                incoming_from_evidence.setdefault(target, set()).add(source)
+        shared_targets = {target: sources for target, sources in incoming_from_evidence.items() if len(sources) >= 2 and any(source in request_names for source in sources)}
+        shared_by_explanation = docs_or_model_contains(model, r"共同引用|共用|共享|等价.*确认|多个.*Request|多个.*履约请求")
+        add(expectations, "At least one Fulfillment Confirmation is shared by multiple requests or explicitly explained as shared/equivalent evidence.", bool(shared_targets) or shared_by_explanation, f"Shared confirmation targets={shared_targets}; shared_by_explanation={shared_by_explanation}")
+
     return expectations
 
 
@@ -458,8 +499,12 @@ def grade_eval(eval_item: dict[str, Any], workspace: Path, configuration: str, s
     output_dir = run_dir / "outputs"
     model = load_model(output_dir)
     self_check_passed, self_check_output = run_self_check(skill_dir, model.model_dir)
-    expectations = general_expectations(model, self_check_passed, self_check_output)
-    expectations.extend(eval_specific_expectations(int(eval_item["id"]), model))
+    eval_id = int(eval_item["id"])
+    if eval_id == 6:
+        expectations = eval_specific_expectations(eval_id, model)
+    else:
+        expectations = general_expectations(model, self_check_passed, self_check_output)
+        expectations.extend(eval_specific_expectations(eval_id, model))
     passed = sum(1 for item in expectations if item.passed)
     total = len(expectations)
     result = {

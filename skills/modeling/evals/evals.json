@@ -32,6 +32,30 @@
       "files": [
         "skills/modeling/evals/fixtures/missing-confirmation-model"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "使用 $modeling 建模电商售后中的凭证不可变场景，写入 fm-model/ 并运行自检：买家与商户形成订单销售合同，买家付款后商户应发货。若买家在发货前取消订单，原付款确认不能被修改或删除；商户需要确认取消，并通过原支付结果触发退款申请，最终形成退款到账确认。若已经发货后发生退货，则需要退货申请、退货收货确认和退款确认。请显式说明为什么取消、冲正、退款或补偿必须是新的业务凭证，而不是更新旧凭证。",
+      "expected_output": "Should model original order/payment/shipment evidence plus cancellation/refund/return reverse evidence as new Fulfillment Request/Confirmation chains. It must preserve original payment/shipment evidence, avoid update/delete/status overwrite entities, mention evidence immutability, and pass self_check_fm_yaml.py.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "请使用 $modeling 判断下面需求是否适合做 Fulfillment Modeling：我们只想做一个电话拨号小工具，让电话销售可以在电脑上控制座机拨号、挂断、重拨，并同步显示通话时长。当前材料没有合同、绩效目标、收费、退款、验收、KPI 或需要留存追责的业务凭证。若不适合 FM，请不要强行生成 fm-model/ YAML，只输出一个简短 analysis.md 说明它更像纯领域/工具集成，以及需要哪些业务权责材料才能进入 FM。",
+      "expected_output": "Should not force a Contract/Request/Confirmation model. It should explain that this is a tool/domain integration rather than an FM business system unless tied to a contract, KPI, billing, audit, or responsibility evidence. It may produce analysis.md, but should not create fm-model YAML graph entities.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "使用 $modeling 为多条会员业务线抽取核心业务模式并建模，输出 fm-model/ 和 02-business-patterns.md：星云视频有普通视频 VIP、超级影视 VIP、体育 VIP 三类会员协议。三类业务都包含用户充值/购买、会员权益开通、可能的观影券赠送、虚拟产品领取/消费、退款和服务中止。差异在会员卡类型、会员等级、权益计算方式、观影券赠送规则、可用支付渠道和适用内容范围。请建模稳定的付费会员核心履约链路，并在业务模式文档中列出可复用模式与变化点。",
+      "expected_output": "Should produce a valid FM YAML model plus 02-business-patterns.md. It should identify a stable paid-membership fulfillment pattern, compare membership lines, represent differences through Thing/Domain Role/Evidence As Role/channel or contract variation, and avoid implementation entities.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "使用 $modeling 建模一个多个履约请求共用确认凭证的 KPI 场景，输出 fm-model/ 并运行自检：销售总监与区域经理签订年度绩效协议，同时约定季度收入指标和年度收入指标。每个季度开始都会形成季度指标请求，年初形成年度指标请求。月度收入确认记录会持续产生；季度指标确认和年度指标确认都可以共同引用同一批收入确认结果作为指标达成证据。请不要把每个收入确认复制成两份，也不要强制把 Request 和 Confirmation 做成一对一。",
+      "expected_output": "Should model PerformanceAgreement as Contract, quarterly and annual KPI requests, KPI confirmations, and shared revenue confirmation evidence. At least one Fulfillment Confirmation should be connected from multiple Fulfillment Requests or otherwise clearly shared as equivalent confirmation evidence. It should pass self-check.",
+      "files": []
     }
   ]
 }

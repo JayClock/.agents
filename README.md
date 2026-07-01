@@ -66,17 +66,23 @@ scripts/install-bundle.sh user-story-modeling ~/.agents/skills --force
 
 ## Validation
 
-When editing the Fulfillment Modeling skill, run:
+When editing the Fulfillment Modeling skill or any generated FM YAML model, run the YAML self-check against the model directory:
 
 ```bash
-python3 skills/modeling/scripts/self_check_fm_graph.py /tmp/fm-graph.json
+python3 skills/modeling/scripts/self_check_fm_yaml.py fm-model/
 ```
 
-When updating an existing FM graph with a changes payload, run:
+For a raw JSON graph payload, the lower-level validator is still available:
 
 ```bash
-python3 skills/modeling/scripts/apply_fm_changes.py /tmp/base-fm-graph.json /tmp/fm-changes.json /tmp/merged-fm-graph.json
-python3 skills/modeling/scripts/self_check_fm_graph.py /tmp/merged-fm-graph.json
+python3 skills/modeling/scripts/fm_graph_validation.py /tmp/fm-graph.json
+```
+
+When updating the modeling skill itself, run the local eval harness after preparing or generating eval outputs:
+
+```bash
+python3 skills/modeling/evals/run_modeling_evals.py --clean --prepare-only
+python3 skills/modeling/evals/run_modeling_evals.py --grade-only
 ```
 
 For distributable standalone `.skill` archives that need shared references:

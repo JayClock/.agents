@@ -11,10 +11,14 @@ These evals exercise the `modeling` skill after the 8X Flow / BOD optimization.
 | 2 | Contract-before / channel contexts | Keeps RFP/Proposal/channel paths separate from contract fulfillment. |
 | 3 | Internal KPI agreement | Uses target-actual/KPI anchors when no cash flow exists. |
 | 4 | Existing invalid model repair | Detects and fixes Fulfillment Request without Fulfillment Confirmation. |
+| 5 | Evidence immutability / reverse evidence | Models cancellation, reversal, refund, return, and compensation as new evidence instead of mutating old evidence. |
+| 6 | Pure domain/tool negative case | Refuses to force FM when no contract, KPI, cash flow, audit evidence, or responsibility trail exists. |
+| 7 | Core business pattern extraction | Extracts stable membership macro-flow and variation points across similar business lines. |
+| 8 | Shared confirmation across requests | Allows multiple Fulfillment Requests to share equivalent Fulfillment Confirmation evidence. |
 
 ## Local eval runner
 
-Use the local runner to prepare isolated workspaces, optionally call an external agent command, and grade produced `fm-model/` outputs.
+Use the local runner to prepare isolated workspaces, optionally call an external agent command, and grade produced outputs. Most evals expect an `fm-model/`; eval 6 is a deliberate negative case and expects an explanatory file without a forced YAML graph.
 
 Prepare prompts, copied inputs, and output directories:
 
@@ -60,12 +64,12 @@ Execute this task:
 - Task: <eval prompt>
 - Input files: <files from evals.json, if any>
 - Save outputs to: modeling-workspace/iteration-1/eval-<id>-<name>/with_skill/outputs/
-- Outputs to save: fm-model/ and final response
+- Outputs to save: fm-model/ and final response; for eval 6, save analysis.md instead of a forced fm-model/
 ```
 
 ## Suggested grading checks
 
-Common checks for every eval:
+Common checks for model-producing evals:
 
 1. The output contains `entities/` and `relationships/` YAML files.
 2. `self_check_fm_yaml.py` passes.
@@ -74,5 +78,7 @@ Common checks for every eval:
 5. Each Fulfillment Request traces back to a Contract and forward to at least one Fulfillment Confirmation.
 6. Every RFP/Proposal/Fulfillment Request/Fulfillment Confirmation/Other Evidence traces to exactly one responsible Participant Party.
 7. Derived attributes use machine-checkable `calculationRule` / `precondition` when applicable.
+
+Eval 6 intentionally skips the common model-producing checks and instead verifies that the agent explains why FM is not appropriate.
 
 Eval-specific checks are described in each `expected_output` entry in `evals.json`.
