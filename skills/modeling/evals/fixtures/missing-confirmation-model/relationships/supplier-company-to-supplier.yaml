@@ -1,0 +1,5 @@
+type: relationship
+source: SupplierCompany
+target: Supplier
+label: 供应商公司扮演供应商
+relationshipKind: rolePlaying

@@ -1,0 +1,12 @@
+type: entity
+category: Evidence
+kind: Contract
+name: Purchase
+label: 采购合同
+context: ProcurementFulfillment
+attributes:
+  - name: signedAt
+    label: 签约时间
+    valueType: DateTime
+    required: true
+    meaning: 双方采购合同成立的时间点

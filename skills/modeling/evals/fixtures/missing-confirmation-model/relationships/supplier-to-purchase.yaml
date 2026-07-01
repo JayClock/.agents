@@ -1,0 +1,5 @@
+type: relationship
+source: Supplier
+target: Purchase
+label: 供应商参与采购合同
+relationshipKind: association

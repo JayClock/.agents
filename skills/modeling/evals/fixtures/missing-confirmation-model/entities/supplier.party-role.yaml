@@ -1,0 +1,6 @@
+type: entity
+category: Role
+kind: Party Role
+name: Supplier
+label: 供应商
+context: ProcurementFulfillment

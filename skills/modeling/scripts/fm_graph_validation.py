@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from collections import defaultdict
 from typing import Any
@@ -18,7 +19,7 @@ KINDS_BY_CATEGORY = {
         "Contract",
         "Fulfillment Request",
         "Fulfillment Confirmation",
-        "Proof",
+        "Other Evidence",
     },
     "Participant": {"Party", "Thing"},
     "Role": {
@@ -37,7 +38,7 @@ KIND_SLUGS = {
     "Proposal": "proposal",
     "Fulfillment Request": "request",
     "Fulfillment Confirmation": "confirmation",
-    "Proof": "proof",
+    "Other Evidence": "evidence",
     "Party": "party",
     "Thing": "thing",
     "Party Role": "party-role",
@@ -54,28 +55,37 @@ TYPE_NAME_SUFFIXES = (
     "Proposal",
     "Request",
     "Confirmation",
-    "Proof",
+    "Evidence",
     "Role",
     "Party",
     "Thing",
 )
-MOMENT_EVIDENCE_KINDS = {"Fulfillment Confirmation", "Proof"}
-EVIDENCE_KINDS_REQUIRING_PARTY_ROLE = {
+MOMENT_EVIDENCE_KINDS = {"Fulfillment Confirmation", "Other Evidence"}
+EVIDENCE_KINDS_REQUIRING_ACTUAL_PARTY = {
     "RFP",
     "Proposal",
     "Fulfillment Request",
     "Fulfillment Confirmation",
-    "Proof",
+    "Other Evidence",
+}
+RELATIONSHIP_KINDS = {
+    "association",
+    "rolePlaying",
+    "crossContextAssociation",
 }
 THIRD_PARTY_ROLE_TARGETS = {
-    ("Evidence", "Proof"),
+    ("Evidence", "Fulfillment Confirmation"),
+    ("Evidence", "Other Evidence"),
     ("Role", "Evidence As Role"),
 }
 CONTEXT_ROLE_TARGETS = {
     ("Evidence", "Fulfillment Confirmation"),
-    ("Evidence", "Proof"),
+    ("Evidence", "Other Evidence"),
     ("Role", "Evidence As Role"),
 }
+IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+CALCULATION_RULE_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=(?!=)\s*(.+?)\s*$")
+ASSIGNMENT_RE = re.compile(r"(?<![!<>=])=(?![=])")
 FORBIDDEN_EVIDENCE_AS_ROLE_NEIGHBORS = {
     ("Evidence", "Contract"),
     ("Evidence", "RFP"),
@@ -275,6 +285,11 @@ def collect_relationships(
         relationship_id = normalize(relationship.get("id"))
         source = normalize(relationship.get("source"))
         target = normalize(relationship.get("target"))
+        relationship_kind = normalize(relationship.get("relationshipKind"))
+        if relationship_kind is not None and relationship_kind not in RELATIONSHIP_KINDS:
+            errors.append(
+                f"relationships[{index}] relationshipKind must be one of {sorted(RELATIONSHIP_KINDS)} when provided; found '{relationship_kind}'."
+            )
         if relationship_id is None:
             errors.append(f"relationships[{index}] must provide id.")
             continue
@@ -347,6 +362,60 @@ def validate_entities(entities: dict[str, dict[str, Any]]) -> list[str]:
         if entity_kind(entity) == ("Participant", "Party") and context is not None:
             errors.append(f"Participant Party entity '{entity_id}' must stay outside Context.")
 
+        errors.extend(validate_attributes(entity_id, entity))
+
+    return errors
+
+
+def validate_attributes(entity_id: str, entity: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    attributes = entity.get("attributes")
+    if attributes is None:
+        return errors
+    if not isinstance(attributes, list):
+        return [f"Entity '{entity_id}' attributes must be an array when provided."]
+
+    for index, attribute in enumerate(attributes):
+        if not isinstance(attribute, dict):
+            errors.append(f"Entity '{entity_id}' attributes[{index}] must be an object.")
+            continue
+
+        attribute_name = normalize(attribute.get("name"))
+        if attribute_name is None:
+            errors.append(f"Entity '{entity_id}' attributes[{index}] name must be a non-empty string.")
+        elif IDENTIFIER_RE.fullmatch(attribute_name) is None:
+            errors.append(
+                f"Entity '{entity_id}' attributes[{index}] name '{attribute_name}' must be an ASCII identifier."
+            )
+
+        calculation_rule = attribute.get("calculationRule")
+        if calculation_rule is not None:
+            if not isinstance(calculation_rule, str) or not calculation_rule.strip():
+                errors.append(
+                    f"Entity '{entity_id}' attributes[{index}] calculationRule must be a non-empty string when provided."
+                )
+            else:
+                match = CALCULATION_RULE_RE.match(calculation_rule)
+                if match is None:
+                    errors.append(
+                        f"Entity '{entity_id}' attributes[{index}] calculationRule must be a single assignment '<attributeName> = <expression>'."
+                    )
+                elif attribute_name is not None and match.group(1) != attribute_name:
+                    errors.append(
+                        f"Entity '{entity_id}' attributes[{index}] calculationRule must assign to its own attribute '{attribute_name}', found '{match.group(1)}'."
+                    )
+
+        precondition = attribute.get("precondition")
+        if precondition is not None:
+            if not isinstance(precondition, str) or not precondition.strip():
+                errors.append(
+                    f"Entity '{entity_id}' attributes[{index}] precondition must be a non-empty string when provided."
+                )
+            elif ASSIGNMENT_RE.search(precondition):
+                errors.append(
+                    f"Entity '{entity_id}' attributes[{index}] precondition must be a boolean expression, not an assignment."
+                )
+
     return errors
 
 
@@ -368,30 +437,123 @@ def validate_relationships(
         adjacency[target].append(source)
         directed_relationships.append((source, target, index))
 
-    errors.extend(validate_party_role_participation(entities, adjacency))
+    errors.extend(validate_actual_party_participation(entities, adjacency))
+    errors.extend(validate_fulfillment_structure(entities, directed_relationships))
     errors.extend(validate_proposal_request_routing(entities, directed_relationships))
+    errors.extend(validate_contract_relationships(entities, directed_relationships))
+    errors.extend(validate_relationship_kind_usage(entities, relationships))
     errors.extend(validate_role_relationship_constraints(entities, directed_relationships, adjacency))
     return errors
 
 
-def validate_party_role_participation(
+def validate_actual_party_participation(
     entities: dict[str, dict[str, Any]], adjacency: dict[str, list[str]]
 ) -> list[str]:
     errors: list[str] = []
     for entity_id, entity in entities.items():
         category, kind = entity_kind(entity)
-        if category != "Evidence" or kind not in EVIDENCE_KINDS_REQUIRING_PARTY_ROLE:
+        if category != "Evidence":
             continue
-        party_role_neighbors = [
-            neighbor_id
-            for neighbor_id in adjacency.get(entity_id, [])
-            if entity_kind(entities[neighbor_id]) == ("Role", "Party Role")
-        ]
-        if len(party_role_neighbors) != 1:
+
+        actual_parties = actual_party_ids(entity_id, entities, adjacency)
+        if kind == "Contract":
+            if len(actual_parties) != 2:
+                errors.append(
+                    f"Contract entity '{entity_id}' must trace to exactly two Participant Party entities, directly or through Party Role; found {len(actual_parties)}."
+                )
+            continue
+
+        if kind in EVIDENCE_KINDS_REQUIRING_ACTUAL_PARTY and len(actual_parties) != 1:
             errors.append(
-                f"Evidence entity '{entity_id}' ({kind}) must have exactly one adjacent Party Role; found {len(party_role_neighbors)}."
+                f"Evidence entity '{entity_id}' ({kind}) must trace to exactly one responsible Participant Party, directly or through Party Role; found {len(actual_parties)}."
             )
     return errors
+
+
+def actual_party_ids(
+    entity_id: str,
+    entities: dict[str, dict[str, Any]],
+    adjacency: dict[str, list[str]],
+) -> set[str]:
+    actual_parties: set[str] = set()
+    for neighbor_id in adjacency.get(entity_id, []):
+        neighbor_kind = entity_kind(entities[neighbor_id])
+        if neighbor_kind == ("Participant", "Party"):
+            actual_parties.add(neighbor_id)
+            continue
+        if neighbor_kind != ("Role", "Party Role"):
+            continue
+        for role_neighbor_id in adjacency.get(neighbor_id, []):
+            if role_neighbor_id == entity_id:
+                continue
+            if entity_kind(entities[role_neighbor_id]) == ("Participant", "Party"):
+                actual_parties.add(role_neighbor_id)
+    return actual_parties
+
+
+def validate_fulfillment_structure(
+    entities: dict[str, dict[str, Any]], relationships: list[tuple[str, str, int]]
+) -> list[str]:
+    """Check that each request participates in a contract-to-confirmation chain."""
+    errors: list[str] = []
+    outgoing: dict[str, list[str]] = defaultdict(list)
+    incoming: dict[str, list[str]] = defaultdict(list)
+    for source, target, _index in relationships:
+        if source not in entities or target not in entities:
+            continue
+        outgoing[source].append(target)
+        incoming[target].append(source)
+
+    for entity_id, entity in entities.items():
+        if entity_kind(entity) != ("Evidence", "Fulfillment Request"):
+            continue
+        if not reachable_evidence_kind(
+            entity_id, ("Evidence", "Contract"), incoming, entities
+        ):
+            errors.append(
+                f"Fulfillment Request entity '{entity_id}' must be traceable back to a Contract through directed same-context Evidence relationships."
+            )
+        if not reachable_evidence_kind(
+            entity_id, ("Evidence", "Fulfillment Confirmation"), outgoing, entities
+        ):
+            errors.append(
+                f"Fulfillment Request entity '{entity_id}' must be traceable forward to at least one Fulfillment Confirmation through directed same-context Evidence relationships."
+            )
+    return errors
+
+
+def reachable_evidence_kind(
+    start_id: str,
+    target_kind: tuple[str, str],
+    links: dict[str, list[str]],
+    entities: dict[str, dict[str, Any]],
+) -> bool:
+    visited: set[str] = set()
+    queue = list(links.get(start_id, []))
+    while queue:
+        entity_id = queue.pop(0)
+        if entity_id in visited:
+            continue
+        visited.add(entity_id)
+        if entity_id not in entities:
+            continue
+        if not same_context_scope(entities, start_id, entity_id):
+            continue
+        kind = entity_kind(entities[entity_id])
+        if kind == target_kind:
+            return True
+        if kind[0] != "Evidence":
+            continue
+        queue.extend(links.get(entity_id, []))
+    return False
+
+
+def same_context_scope(
+    entities: dict[str, dict[str, Any]], left_id: str, right_id: str
+) -> bool:
+    left_context = context_id(entities, left_id)
+    right_context = context_id(entities, right_id)
+    return left_context is None or right_context is None or left_context == right_context
 
 
 def validate_proposal_request_routing(
@@ -399,12 +561,56 @@ def validate_proposal_request_routing(
 ) -> list[str]:
     errors: list[str] = []
     for source, target, index in relationships:
-        if entity_kind(entities.get(source)) == ("Evidence", "Proposal") and entity_kind(
-            entities.get(target)
-        ) == ("Evidence", "Fulfillment Request"):
+        source_kind = entity_kind(entities.get(source))
+        target_kind = entity_kind(entities.get(target))
+        if {source_kind, target_kind} == {
+            ("Evidence", "Proposal"),
+            ("Evidence", "Fulfillment Request"),
+        }:
             errors.append(
-                f"relationships[{index}] Proposal must not connect directly to Fulfillment Request."
+                f"relationships[{index}] Proposal must not connect directly to Fulfillment Request; route through Contract."
             )
+    return errors
+
+
+def validate_contract_relationships(
+    entities: dict[str, dict[str, Any]], relationships: list[tuple[str, str, int]]
+) -> list[str]:
+    errors: list[str] = []
+    for source, target, index in relationships:
+        if entity_kind(entities.get(source)) == ("Evidence", "Contract") and entity_kind(
+            entities.get(target)
+        ) == ("Evidence", "Contract"):
+            errors.append(
+                f"relationships[{index}] Contract must not connect directly to another Contract; use separate contract contexts and bridge them through moment evidence or Evidence As Role."
+            )
+    return errors
+
+
+def validate_relationship_kind_usage(
+    entities: dict[str, dict[str, Any]],
+    relationships: list[tuple[str, str, str, int, dict[str, Any]]],
+) -> list[str]:
+    errors: list[str] = []
+    for relationship_id, source, target, index, relationship in relationships:
+        if source not in entities or target not in entities:
+            continue
+        relationship_kind = normalize(relationship.get("relationshipKind"))
+        if relationship_kind is None:
+            continue
+        source_kind = entity_kind(entities.get(source))
+        target_kind = entity_kind(entities.get(target))
+        if relationship_kind == "rolePlaying" and source_kind[0] != "Role" and target_kind[0] != "Role":
+            errors.append(
+                f"relationships[{index}] '{relationship_id}' uses relationshipKind rolePlaying but neither endpoint is a Role."
+            )
+        if relationship_kind == "crossContextAssociation":
+            source_context = context_id(entities, source)
+            target_context = context_id(entities, target)
+            if source_context is not None and source_context == target_context:
+                errors.append(
+                    f"relationships[{index}] '{relationship_id}' uses relationshipKind crossContextAssociation but both endpoints are in context '{source_context}'."
+                )
     return errors
 
 
@@ -428,7 +634,7 @@ def validate_role_relationship_constraints(
             and not is_allowed_cross_context_relationship(source_kind, target_kind)
         ):
             errors.append(
-                f"relationships[{index}] invalid cross-context relationship {source} -> {target}; only moment evidence (Fulfillment Confirmation/Proof) direct links or Evidence As Role bridges are allowed."
+                f"relationships[{index}] invalid cross-context relationship {source} -> {target}; only moment evidence (Fulfillment Confirmation/Other Evidence) direct links or Evidence As Role bridges are allowed."
             )
 
         if source_kind == ("Role", "Evidence As Role") and target_kind == (
@@ -452,10 +658,10 @@ def validate_role_relationship_constraints(
         allowed_targets_label: str | None = None
         if kind == ("Role", "Third Party Role"):
             allowed_targets = THIRD_PARTY_ROLE_TARGETS
-            allowed_targets_label = "Proof or Evidence As Role"
+            allowed_targets_label = "Fulfillment Confirmation, Other Evidence, or Evidence As Role"
         elif kind == ("Role", "Context Role"):
             allowed_targets = CONTEXT_ROLE_TARGETS
-            allowed_targets_label = "Fulfillment Confirmation, Proof, or Evidence As Role"
+            allowed_targets_label = "Fulfillment Confirmation, Other Evidence, or Evidence As Role"
 
         if allowed_targets is not None:
             for neighbor_id in adjacency.get(entity_id, []):

@@ -1,0 +1,6 @@
+type: entity
+category: Role
+kind: Party Role
+name: Buyer
+label: 采购方
+context: ProcurementFulfillment

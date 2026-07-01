@@ -1,0 +1,18 @@
+type: entity
+category: Evidence
+kind: Fulfillment Request
+name: DeliveryInstruction
+label: 交付申请
+context: ProcurementFulfillment
+attributes:
+  - name: startedAt
+    label: 交付申请开始时间
+    valueType: DateTime
+    required: true
+    meaning: 采购方发起交付履约的时间
+  - name: expiredAt
+    label: 交付截止时间
+    valueType: DateTime
+    required: true
+    meaning: 供应商应完成交付的最晚时间
+    calculationRule: expiredAt = startedAt + duration("P7D")

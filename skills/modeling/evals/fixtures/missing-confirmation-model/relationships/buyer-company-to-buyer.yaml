@@ -1,0 +1,5 @@
+type: relationship
+source: BuyerCompany
+target: Buyer
+label: 采购方公司扮演采购方
+relationshipKind: rolePlaying

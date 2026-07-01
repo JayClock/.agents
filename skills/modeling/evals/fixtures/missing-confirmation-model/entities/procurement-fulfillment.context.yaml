@@ -1,0 +1,6 @@
+type: entity
+category: Context
+kind: Bounded Context
+name: ProcurementFulfillment
+label: 采购履约上下文
+notes: Eval fixture intentionally lacks the fulfillment confirmation for DeliveryInstruction.

@@ -1,0 +1,5 @@
+type: entity
+category: Participant
+kind: Party
+name: SupplierCompany
+label: 供应商公司

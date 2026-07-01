@@ -1,0 +1,5 @@
+type: relationship
+source: Purchase
+target: DeliveryInstruction
+label: 采购合同触发交付申请
+relationshipKind: association

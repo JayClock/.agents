@@ -1,0 +1,37 @@
+{
+  "skill_name": "modeling",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "使用 $modeling 为下面的会员服务协议片段建立 Fulfillment Modeling 模型，写入 fm-model/ 并运行自检：用户点击购买即同意《星云视频 VIP 会员服务协议》；用户可购买 VIP 会员卡给自己的视频账号充值会员时长；充值成功后，星云视频需要开通对应会员权益；用户可在符合法定条件时申请退费，星云视频通过原支付渠道完成退费确认；会员权益由“会员权益计算器”依据会员卡、账号、会员类型和有效期计算。广告展示、推荐算法、播放器实现、登录页面和 App 交互不属于当前建模范围。请同时输出 02-business-patterns.md。",
+      "expected_output": "Should produce a YAML FM model plus README/overview/glossary/business-patterns. It should separate business from domain: VIP service agreement as Contract between User and Provider, VideoAccount/VipCard/MemberEntitlement as Thing or domain concepts, EntitlementCalculator as Domain Role, recharge/activation/refund as Fulfillment Request/Confirmation chains, no UI/API/player/recommendation entities, no RFP/Proposal unless justified, and self_check_fm_yaml.py must pass.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "使用 $modeling 建模一个电商订单履约：买家和平台商户形成销售合同，合同约定买家付款后商户发货。支付可以来自微信支付、支付宝支付或预付余额抵扣，这些支付方式各自属于外部或独立合约上下文；销售合同只需要依赖“付款已确认”这个确定结果，而不要依赖每个支付上下文的内部流程。退款也可能走不同渠道。请输出 fm-model/，并说明变化点在哪里。",
+      "expected_output": "Should model Sales/Order Contract with Buyer/Seller parties, PaymentCollection request and PaymentResult confirmation in the sales context, shipment request/confirmation after payment, and refund request/confirmation as exception flow. Payment variability should be represented by Evidence As Role and/or Context Role connected only to moment evidence (Fulfillment Confirmation or Other Evidence), not by Contract-to-Contract or Request-as-role links. It should identify payment/refund channel as a business variation point and pass self-check.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "使用 $modeling 建模装修服务签约与履约。最终都会签《装修服务合同》，但签约来源有三种：A. 客户先发装修方案征询，服务商返回唯一装修方案提案后签约；B. 客户直接购买平台上的固定装修套餐，没有 RFP；C. 企业客户公开招标，同一次招标会收到基础版、专业版、折扣修订版多个提案，最终引用其中一个提案签约。合同签订后，客户发起开工申请，服务商确认开工；完工后客户发起验收申请并确认验收。请输出 fm-model/。",
+      "expected_output": "Should keep contract-before/channel contexts separate from contract fulfillment context. It should represent RFP/Proposal only where business needs traceability: one RFP-one Proposal for path A, Proposal-only or direct Contract for fixed package path B, one RFP-many Proposal for tender path C. The final DecorationService Contract should connect to fulfillment requests/confirmations, and Proposal must not connect directly to Fulfillment Request. It should not force all channels into one flow and should pass self-check.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "使用 $modeling 为一个没有直接现金往来的内部 CRM 电话销售管理场景建模：季度开始时销售主管与电话销售达成绩效协议，约定每月联系 100 个线索，其中电话不少于 60 次、邮件不少于 40 次，并以周会检查进度。每次联系客户都要留下联系记录；月末根据联系记录和转化结果确认 KPI 实际完成情况。若连续两周低于计划，触发辅导改进义务，销售主管发起辅导计划，电话销售完成辅导并由主管确认。请输出 fm-model/。",
+      "expected_output": "Should use target-vs-actual/KPI as the event-stream anchor, not invent payment flow. It should model PerformanceAgreement/Contract between Manager and Salesperson, KPI/ContactTarget as attributes or Thing, progress/KPI requests and confirmations with ContactRecord or KPIResult evidence, and CoachingImprovement request/confirmation as exception/obligation. It should include responsible Party roles, separate CRM/domain concepts from business obligations, and pass self-check.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "使用 $modeling 审查并修复输入文件中的已有 FM 模型。这个模型表达采购合同下的交付申请，但缺少对应的履约确认。请在不改变既有业务语义的前提下补齐必要实体和关系，写回或复制到 fm-model/，并运行自检直到通过。",
+      "expected_output": "Should detect that a Fulfillment Request without a traceable Fulfillment Confirmation is invalid. It should add a delivery result/acceptance Fulfillment Confirmation, connect Purchase -> DeliveryInstruction -> DeliveryResult in the same context, connect exactly one responsible Participant Party (likely Supplier role) to the confirmation, preserve Contract's two parties, remove no valid existing evidence, and self_check_fm_yaml.py must pass.",
+      "files": [
+        "skills/modeling/evals/fixtures/missing-confirmation-model"
+      ]
+    }
+  ]
+}
