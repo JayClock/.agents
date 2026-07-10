@@ -1,6 +1,6 @@
 # Agents Skills
 
-This repository now keeps only the User Story / Fulfillment Modeling / Agent Architecture skills and their supporting files.
+This repository contains reusable, agent-agnostic skills and their supporting files.
 
 ## Retained Skills
 
@@ -21,6 +21,12 @@ This repository now keeps only the User Story / Fulfillment Modeling / Agent Arc
 |---|---|
 | `agent-selection-review` | Reviews or selects Agent / Workflow / Multi-agent architectures for business requirements and PRDs. |
 | `agent-harness-reverse-five-step` | Reverse engineers Agent Harness / coding-agent repositories from source evidence. |
+
+### Research and Citation Management
+
+| Skill | Solves |
+|---|---|
+| `zotero` | Searches a local Zotero Desktop library, exports BibTeX, inserts citations, reads requested indexed text, and imports reference records with confirmation. |
 
 ## Supporting Content
 
