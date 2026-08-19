@@ -13,6 +13,16 @@
       "invocation": "model",
       "enabled": true
     },
+    "career-assets": {
+      "category": "career-development",
+      "status": "stable",
+      "invocation": "model",
+      "enabled": true,
+      "upstream": {
+        "repository": "https://github.com/Ivor-NCUT/career-assets-skill",
+        "revision": "4f3208a04f5ea08e8d8d9dbbea87616fccf0dff5"
+      }
+    },
     "fm-database-design": {
       "category": "fulfillment-modeling",
       "status": "stable",

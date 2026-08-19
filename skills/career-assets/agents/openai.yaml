@@ -1,0 +1,7 @@
+---
+interface:
+  display_name: "职业资产"
+  short_description: "沉淀职业经历并派生岗位简历"
+  default_prompt: >-
+    Use $career-assets to build a reusable career record and derive a truthful,
+    role-specific resume.

@@ -17,6 +17,12 @@ The repository does not maintain bundles. Every skill with `enabled: true` in
 
 ## Skill Catalog
 
+### Career Development
+
+| Skill | Invocation | Solves |
+| --- | --- | --- |
+| [`career-assets`](skills/career-assets/SKILL.md) | Model | Builds a reusable career record through interviews and derives role-specific résumés. |
+
 ### User Story and Modeling Workflow
 
 | Skill | Invocation | Solves |
