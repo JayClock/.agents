@@ -1,99 +1,94 @@
-# Agents Skills
+# Personal Agent Skills
 
-This repository contains reusable, agent-agnostic skills and their supporting files.
+This repository is the single source of truth for my reusable Agent Skills. Skills are
+collected under `skills/` and indexed by `skills.json`.
 
-## Retained Skills
+## Management Model
+
+- `skills/` contains enabled skills that may be discovered by an agent harness.
+- `drafts/` contains unfinished skills and is never linked into a harness.
+- `archive/` contains retired or replaced skills.
+- `skills.json` is the only registry for category, lifecycle, invocation mode, and
+  enablement.
+- `skills/_shared/` contains repository-level references reused by multiple skills.
+
+The repository does not maintain bundles. Every skill with `enabled: true` in
+`skills.json` is part of the active personal collection.
+
+## Skill Catalog
 
 ### User Story and Modeling Workflow
 
-| Skill | Solves |
-|---|---|
-| `user-story-modeling-workflow` | Orchestrates Epic stories, fine-grained stories, TQA refinement, domain modeling, and model validation. |
-| `user-story-tqa-refinement` | Refines, splits, completes, or writes user stories through a Think → Question → Answer loop. |
-| `tqa-acceptance-criteria-writer` | Writes Given/When/Then acceptance criteria after clarifying missing business context. |
-| `story-model-validation` | Validates domain models against fine-grained stories and acceptance criteria. |
-| `modeling` | Creates Fulfillment Modeling graphs from business/software requirements. |
-| `fm-database-design` | Maps FM graphs into append-only microservice database table designs and SQL DDL. |
+| Skill | Invocation | Solves |
+| --- | --- | --- |
+| [`user-story-modeling-workflow`](skills/user-story-modeling-workflow/SKILL.md) | User | Orchestrates Epic stories, detailed stories, TQA refinement, modeling, and validation. |
+| [`user-story-tqa-refinement`](skills/user-story-tqa-refinement/SKILL.md) | Model | Refines and splits user stories through a Think → Question → Answer loop. |
+| [`tqa-acceptance-criteria-writer`](skills/tqa-acceptance-criteria-writer/SKILL.md) | Model | Clarifies missing business context and writes Given/When/Then scenarios. |
+| [`story-model-validation`](skills/story-model-validation/SKILL.md) | Model | Validates domain models against detailed stories and acceptance criteria. |
+
+### Fulfillment Modeling
+
+| Skill | Invocation | Solves |
+| --- | --- | --- |
+| [`modeling`](skills/modeling/SKILL.md) | Model | Creates and validates Fulfillment Modeling YAML graphs. |
+| [`fm-database-design`](skills/fm-database-design/SKILL.md) | Model | Maps FM graphs into append-only database schemas and SQL DDL. |
 
 ### Agent Architecture
 
-| Skill | Solves |
-|---|---|
-| `agent-selection-review` | Reviews or selects Agent / Workflow / Multi-agent architectures for business requirements and PRDs. |
-| `agent-harness-reverse-five-step` | Reverse engineers Agent Harness / coding-agent repositories from source evidence. |
+| Skill | Invocation | Solves |
+| --- | --- | --- |
+| [`agent-selection-review`](skills/agent-selection-review/SKILL.md) | Model | Selects and reviews Agent, Workflow, and Multi-agent architectures. |
+| [`agent-harness-reverse-five-step`](skills/agent-harness-reverse-five-step/SKILL.md) | Model | Reverse engineers Agent Harness repositories from source evidence. |
 
 ### Research and Citation Management
 
-| Skill | Solves |
-|---|---|
-| `zotero` | Searches a local Zotero Desktop library, exports BibTeX, inserts citations, reads requested indexed text, and imports reference records with confirmation. |
+| Skill | Invocation | Solves |
+| --- | --- | --- |
+| [`zotero`](skills/zotero/SKILL.md) | Model | Operates a local Zotero library, citations, exports, and imports. |
 
-## Supporting Content
+## Add or Retire a Skill
 
-- `skills/_shared/agent-double-axis-framework.md` is shared by the two Agent Architecture skills.
-- `scripts/install-bundle.sh` installs retained bundles.
-- `scripts/package-skill.py` packages skills that depend on shared references.
-- `dist/*.skill` contains packaged artifacts for the retained Agent Architecture skills.
+To add a skill:
 
-## Installation
+1. Develop it under `drafts/<skill-name>/`.
+2. Give it a `SKILL.md` and `agents/openai.yaml`.
+3. Add realistic evaluations when its output can be checked.
+4. Move it to `skills/<skill-name>/` when it is ready.
+5. Register it in `skills.json` and add it to the catalog above.
 
-Clone this repository as an `.agents` directory:
+To retire a skill, move it from `skills/` to `archive/`, remove it from `skills.json`,
+and update this catalog.
 
-```bash
-git clone https://github.com/JayClock/.agents.git ~/.agents
-```
+## Invocation Modes
 
-Install a retained bundle into an existing agents directory:
+Each registered skill declares one invocation mode:
 
-```bash
-scripts/install-bundle.sh user-story-modeling ~/.agents/skills
-scripts/install-bundle.sh agent-architecture ~/.agents/skills
-```
+- `user`: only the user starts it. Its `SKILL.md` sets
+  `disable-model-invocation: true`, and `agents/openai.yaml` sets
+  `policy.allow_implicit_invocation: false`.
+- `model`: the user or model may start it. Its description should clearly describe both
+  what it does and when it should trigger.
 
-List bundles:
+Use user invocation for high-level workflow entry points. Use model invocation for
+reusable capabilities that an agent or another skill should be able to reach.
 
-```bash
-scripts/install-bundle.sh --list
-```
+## Skill-specific Validation
 
-Update an installed bundle:
-
-```bash
-scripts/install-bundle.sh user-story-modeling ~/.agents/skills --force
-```
-
-## Bundles
-
-| Bundle | Skills | Use When |
-|---|---|---|
-| `user-story-modeling` | `user-story-modeling-workflow`, `user-story-tqa-refinement`, `tqa-acceptance-criteria-writer`, `story-model-validation`, `modeling`, `fm-database-design` | Running an end-to-end requirements → stories → acceptance criteria → model → database design / validation workflow. |
-| `agent-architecture` | `agent-selection-review`, `agent-harness-reverse-five-step` | Selecting, reviewing, or reverse engineering Agent architectures with the double-axis framework. |
-| `all` | Every retained skill | Installing the complete reduced skill set. |
-
-## Validation
-
-When editing the Fulfillment Modeling skill or any generated FM YAML model, run the YAML self-check against the model directory:
+When editing the Fulfillment Modeling skill or a generated FM YAML model, run:
 
 ```bash
 python3 skills/modeling/scripts/self_check_fm_yaml.py fm-model/
 ```
 
-For a raw JSON graph payload, the lower-level validator is still available:
+For a raw JSON graph payload:
 
 ```bash
 python3 skills/modeling/scripts/fm_graph_validation.py /tmp/fm-graph.json
 ```
 
-When updating the modeling skill itself, run the local eval harness after preparing or generating eval outputs:
+For modeling evaluations:
 
 ```bash
 python3 skills/modeling/evals/run_modeling_evals.py --clean --prepare-only
 python3 skills/modeling/evals/run_modeling_evals.py --grade-only
-```
-
-For distributable standalone `.skill` archives that need shared references:
-
-```bash
-scripts/package-skill.py agent-selection-review dist
-scripts/package-skill.py agent-harness-reverse-five-step dist
 ```

@@ -1,0 +1,6 @@
+interface:
+  display_name: "TQA Acceptance Criteria Writer"
+  short_description: "Clarify and write acceptance scenarios"
+  default_prompt: >-
+    Use $tqa-acceptance-criteria-writer to clarify this story before writing
+    Given/When/Then scenarios.

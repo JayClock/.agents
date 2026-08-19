@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zotero"
+  short_description: "Manage a local Zotero library"
+  default_prompt: "Use $zotero to work with the local Zotero Desktop library."

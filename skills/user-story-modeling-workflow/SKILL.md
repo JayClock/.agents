@@ -1,6 +1,7 @@
 ---
 name: user-story-modeling-workflow
-description: Use this skill whenever the user wants an end-to-end workflow that combines Epic user stories, fine-grained user stories, TQA refinement, domain modeling, and model validation. It guides the user to maintain a story-set file containing both Epic stories and detailed stories, use Epics as the modeling/learning input, and use fine-grained stories plus Given/When/Then acceptance criteria as the validation/test input. Especially use for user story modeling workflows, Epic modeling with fine-grained story validation, LLM-assisted user stories and domain modeling, or organizing requirements files for this process.
+description: Coordinate the end-to-end workflow for Epic stories, fine-grained stories, TQA refinement, domain modeling, and model validation.
+disable-model-invocation: true
 ---
 
 # User Story Modeling Workflow
@@ -119,7 +120,7 @@ Validation can lead to:
 
 ## Story-set file template
 
-```markdown
+````markdown
 # [Business Capability] - User Story Set
 
 ## 1. Business Background
@@ -216,7 +217,7 @@ classDiagram
 
 | Date | Change | Reason |
 |---|---|---|
-```
+````
 
 ## Suggested prompts
 

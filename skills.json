@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "skills": {
+    "agent-harness-reverse-five-step": {
+      "category": "agent-architecture",
+      "status": "stable",
+      "invocation": "model",
+      "enabled": true
+    },
+    "agent-selection-review": {
+      "category": "agent-architecture",
+      "status": "stable",
+      "invocation": "model",
+      "enabled": true
+    },
+    "fm-database-design": {
+      "category": "fulfillment-modeling",
+      "status": "stable",
+      "invocation": "model",
+      "enabled": true
+    },
+    "modeling": {
+      "category": "fulfillment-modeling",
+      "status": "stable",
+      "invocation": "model",
+      "enabled": true
+    },
+    "story-model-validation": {
+      "category": "user-story-modeling",
+      "status": "stable",
+      "invocation": "model",
+      "enabled": true
+    },
+    "tqa-acceptance-criteria-writer": {
+      "category": "user-story-modeling",
+      "status": "stable",
+      "invocation": "model",
+      "enabled": true
+    },
+    "user-story-modeling-workflow": {
+      "category": "user-story-modeling",
+      "status": "stable",
+      "invocation": "user",
+      "enabled": true
+    },
+    "user-story-tqa-refinement": {
+      "category": "user-story-modeling",
+      "status": "stable",
+      "invocation": "model",
+      "enabled": true
+    },
+    "zotero": {
+      "category": "research",
+      "status": "stable",
+      "invocation": "model",
+      "enabled": true
+    }
+  }
+}

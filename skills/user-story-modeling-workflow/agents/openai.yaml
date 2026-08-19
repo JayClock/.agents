@@ -1,0 +1,8 @@
+interface:
+  display_name: "User Story Modeling Workflow"
+  short_description: "Run the end-to-end story modeling workflow"
+  default_prompt: >-
+    Use $user-story-modeling-workflow to coordinate stories, modeling, and
+    validation.
+policy:
+  allow_implicit_invocation: false

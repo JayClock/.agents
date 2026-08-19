@@ -1,0 +1,6 @@
+interface:
+  display_name: "Agent Harness Reverse Five-Step"
+  short_description: "Reverse engineer agent harness repositories"
+  default_prompt: >-
+    Use $agent-harness-reverse-five-step to map this Agent Harness from source
+    evidence.

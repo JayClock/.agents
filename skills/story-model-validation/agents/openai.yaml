@@ -1,0 +1,6 @@
+interface:
+  display_name: "Story Model Validation"
+  short_description: "Validate models against detailed stories"
+  default_prompt: >-
+    Use $story-model-validation to validate this model against detailed stories
+    and acceptance criteria.

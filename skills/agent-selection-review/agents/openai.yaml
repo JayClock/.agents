@@ -1,0 +1,6 @@
+interface:
+  display_name: "Agent Selection Review"
+  short_description: "Select and review Agent architectures"
+  default_prompt: >-
+    Use $agent-selection-review to select or review the Agent architecture for
+    these requirements.
